@@ -1,283 +1,250 @@
-<script setup>
-import { ref, shallowRef, watch, onMounted, computed } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
-import MarkdownEditor from './components/MarkdownEditor.vue'
-import Toolbar from './components/Toolbar.vue'
-
-const content = ref('# Welcome to Markdown Editor\n\nStart writing your markdown here...')
-const currentFilePath = ref(null)
-const isModified = ref(false)
-const autoSaveEnabled = ref(false)
-const editorRef = shallowRef(null)
-let autoSaveTimer = null
-
-// Theme management
-const themeMode = ref('system') // 'light', 'dark', 'system'
-const isDarkMode = ref(false)
-
-// Load theme preference from localStorage
+<script setup>import { ref, shallowRef, watch, onMounted, computed } from 'vue';
+import { invoke } from '@tauri-apps/api/core';
+import MarkdownEditor from './components/MarkdownEditor.vue';
+import Toolbar from './components/Toolbar.vue';
+import { t, getSavedLanguage, setLanguage, getCurrentMessages, availableLanguages } from './i18n/index.js';
+const content = ref('# Welcome to Markdown Editor\n\nStart writing your markdown here...');
+const currentFilePath = ref(null);
+const isModified = ref(false);
+const autoSaveEnabled = ref(false);
+const editorRef = shallowRef(null);
+let autoSaveTimer = null;
+const themeMode = ref('system');
+const isDarkMode = ref(false);
+const currentLanguage = ref(getSavedLanguage());
 onMounted(() => {
-  const savedTheme = localStorage.getItem('theme-mode')
-  if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
-    themeMode.value = savedTheme
-  }
-  updateTheme()
-})
-
-// Watch for theme mode changes
+ const savedTheme = localStorage.getItem('theme-mode');
+ if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
+ themeMode.value = savedTheme;
+ }
+ updateTheme();
+});
 watch(themeMode, () => {
-  localStorage.setItem('theme-mode', themeMode.value)
-  updateTheme()
-})
-
-// Update theme based on mode and system preference
+ localStorage.setItem('theme-mode', themeMode.value);
+ updateTheme();
+});
 function updateTheme() {
-  if (themeMode.value === 'system') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    isDarkMode.value = prefersDark
-  } else {
-    isDarkMode.value = themeMode.value === 'dark'
-  }
-  
-  // Apply theme class to document
-  if (isDarkMode.value) {
-    document.documentElement.classList.add('dark-theme')
-    document.documentElement.classList.remove('light-theme')
-  } else {
-    document.documentElement.classList.add('light-theme')
-    document.documentElement.classList.remove('dark-theme')
-  }
+ if (themeMode.value === 'system') {
+ const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+ isDarkMode.value = prefersDark;
+ }
+ else {
+ isDarkMode.value = themeMode.value === 'dark';
+ }
+ if (isDarkMode.value) {
+ document.documentElement.classList.add('dark-theme');
+ document.documentElement.classList.remove('light-theme');
+ }
+ else {
+ document.documentElement.classList.add('light-theme');
+ document.documentElement.classList.remove('dark-theme');
+ }
 }
-
-// Listen for system theme changes
 if (typeof window !== 'undefined') {
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-    if (themeMode.value === 'system') {
-      isDarkMode.value = e.matches
-      updateTheme()
-    }
-  })
+ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+ if (themeMode.value === 'system') {
+ isDarkMode.value = e.matches;
+ updateTheme();
+ }
+ });
 }
-
-// Theme toggle handler
 function handleThemeChange() {
-  const modes = ['light', 'dark', 'system']
-  const currentIndex = modes.indexOf(themeMode.value)
-  themeMode.value = modes[(currentIndex + 1) % modes.length]
+ const modes = ['light', 'dark', 'system'];
+ const currentIndex = modes.indexOf(themeMode.value);
+ themeMode.value = modes[(currentIndex + 1) % modes.length];
 }
-
-// Get theme display text
 const themeDisplayText = computed(() => {
-  const texts = {
-    light: '浅色',
-    dark: '深色',
-    system: '系统'
-  }
-  return texts[themeMode.value] || '系统'
-})
-
-// File operations
+ const texts = {
+ light: t('common.light'),
+ dark: t('common.dark'),
+ system: t('common.system')
+ };
+ return texts[themeMode.value] || 'System';
+});
+function handleLanguageChange(lang) {
+ currentLanguage.value = lang;
+ setLanguage(lang);
+ location.reload();
+}
+const currentLangText = computed(() => {
+ const messages = getCurrentMessages();
+ return messages.languages[currentLanguage.value] || currentLanguage.value;
+});
 async function handleNew() {
-  if (isModified.value) {
-    const confirm = window.confirm('当前文件未保存，是否继续？')
-    if (!confirm) return
-  }
-  content.value = '# New Document\n\n'
-  currentFilePath.value = null
-  isModified.value = false
-  autoSaveEnabled.value = false
+ if (isModified.value) {
+ const confirm = window.confirm(t('common.confirmClose'));
+ if (!confirm)
+ return;
+ }
+ content.value = '# New Document\n\n';
+ currentFilePath.value = null;
+ isModified.value = false;
+ autoSaveEnabled.value = false;
 }
-
 async function handleOpen() {
-  try {
-    if (isModified.value) {
-      const confirm = window.confirm('当前文件未保存，是否继续？')
-      if (!confirm) return
-    }
-
-    const filePath = await invoke('open_file_dialog')
-    if (filePath) {
-      const fileContent = await invoke('read_file', { path: filePath })
-      content.value = fileContent
-      currentFilePath.value = filePath
-      isModified.value = false
-      // Auto save stays disabled until user explicitly enables it
-    }
-  } catch (error) {
-    alert('打开文件失败: ' + error)
-  }
+ try {
+ if (isModified.value) {
+ const confirm = window.confirm(t('common.confirmClose'));
+ if (!confirm)
+ return;
+ }
+ const filePath = await invoke('open_file_dialog');
+ if (filePath) {
+ const fileContent = await invoke('read_file', { path: filePath });
+ content.value = fileContent;
+ currentFilePath.value = filePath;
+ isModified.value = false;
+ }
+ }
+ catch (error) {
+ alert('打开文件失败: ' + error);
+ }
 }
-
 async function handleSave() {
-  try {
-    let filePath = currentFilePath.value
-    
-    if (!filePath) {
-      filePath = await invoke('save_file_dialog', { defaultName: 'document.md' })
-      if (!filePath) return
-    }
-
-    await invoke('write_file', { 
-      path: filePath, 
-      content: content.value 
-    })
-    
-    currentFilePath.value = filePath
-    isModified.value = false
-    showNotification('文件已保存')
-    
-    // If auto save is enabled and this was a new file, trigger initial auto save
-    if (autoSaveEnabled.value) {
-      performAutoSave()
-    }
-  } catch (error) {
-    alert('保存文件失败: ' + error)
-  }
+ try {
+ let filePath = currentFilePath.value;
+ if (!filePath) {
+ filePath = await invoke('save_file_dialog', { defaultName: 'document.md' });
+ if (!filePath)
+ return;
+ }
+ await invoke('write_file', {
+ path: filePath,
+ content: content.value
+ });
+ currentFilePath.value = filePath;
+ isModified.value = false;
+ showNotification(t('common.fileSaved'));
+ if (autoSaveEnabled.value) {
+ performAutoSave();
+ }
+ }
+ catch (error) {
+ alert('保存文件失败: ' + error);
+ }
 }
-
 async function handleSaveAs() {
-  try {
-    const filePath = await invoke('save_file_dialog', { 
-      defaultName: getFileName() || 'document.md' 
-    })
-    
-    if (filePath) {
-      await invoke('write_file', { 
-        path: filePath, 
-        content: content.value 
-      })
-      
-      currentFilePath.value = filePath
-      isModified.value = false
-      showNotification('文件已保存')
-    }
-  } catch (error) {
-    alert('保存文件失败: ' + error)
-  }
+ try {
+ const filePath = await invoke('save_file_dialog', {
+ defaultName: getFileName() || 'document.md'
+ });
+ if (filePath) {
+ await invoke('write_file', {
+ path: filePath,
+ content: content.value
+ });
+ currentFilePath.value = filePath;
+ isModified.value = false;
+ showNotification(t('common.fileSaved'));
+ }
+ }
+ catch (error) {
+ alert('保存文件失败: ' + error);
+ }
 }
-
-// Helper functions
 function getFileName() {
-  if (!currentFilePath.value) return null
-  const parts = currentFilePath.value.split('/')
-  return parts[parts.length - 1]
+ if (!currentFilePath.value)
+ return null;
+ const parts = currentFilePath.value.split('/');
+ return parts[parts.length - 1];
 }
-
 function showNotification(message) {
-  const notif = document.createElement('div')
-  notif.className = 'notification'
-  notif.textContent = message
-  document.body.appendChild(notif)
-  setTimeout(() => notif.remove(), 2000)
+ const notif = document.createElement('div');
+ notif.className = 'notification';
+ notif.textContent = message;
+ document.body.appendChild(notif);
+ setTimeout(() => notif.remove(), 2000);
 }
-
-// Track content changes
 function onContentChange(newContent) {
-  content.value = newContent
-  isModified.value = true
-  
-  // Auto save if enabled and file path exists (with debounce)
-  if (autoSaveEnabled.value && currentFilePath.value) {
-    // Clear previous timer
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer)
-    }
-    // Set new timer - save after 500ms of inactivity
-    autoSaveTimer = setTimeout(() => {
-      performAutoSave()
-    }, 500)
-  }
+ content.value = newContent;
+ isModified.value = true;
+ if (autoSaveEnabled.value && currentFilePath.value) {
+ if (autoSaveTimer) {
+ clearTimeout(autoSaveTimer);
+ }
+ autoSaveTimer = setTimeout(() => {
+ performAutoSave();
+ }, 500);
+ }
 }
-
-// Auto save function
 async function performAutoSave() {
-  if (!currentFilePath.value) return
-  
-  try {
-    await invoke('write_file', { 
-      path: currentFilePath.value, 
-      content: content.value 
-    })
-    isModified.value = false
-  } catch (error) {
-    console.error('自动保存失败:', error)
-  }
+ if (!currentFilePath.value)
+ return;
+ try {
+ await invoke('write_file', {
+ path: currentFilePath.value,
+ content: content.value
+ });
+ isModified.value = false;
+ }
+ catch (error) {
+ console.error('自动保存失败:', error);
+ }
 }
-
-// Handle auto save toggle
 function handleAutoSaveToggle() {
-  if (!currentFilePath.value) {
-    // If no file path, disable auto save and show message
-    autoSaveEnabled.value = false
-    alert('请先保存文件以启用自动保存功能。\n\n点击"保存"按钮选择保存位置后，即可使用自动保存。')
-    return
-  }
-  
-  // If enabling auto save, save immediately
-  if (autoSaveEnabled.value) {
-    performAutoSave()
-  }
+ if (!currentFilePath.value) {
+ autoSaveEnabled.value = false;
+ alert(t('common.pleaseSaveFirst'));
+ return;
+ }
+ if (autoSaveEnabled.value) {
+ performAutoSave();
+ }
 }
-
-// Watch autoSaveEnabled changes
 watch(autoSaveEnabled, (newValue) => {
-  // If enabling auto save and file exists, save immediately
-  if (newValue && currentFilePath.value) {
-    performAutoSave()
-  }
-})
-
-// Handle toolbar actions
+ if (newValue && currentFilePath.value) {
+ performAutoSave();
+ }
+});
 function handleToolbarAction(action, emoji = null) {
-  if (editorRef.value) {
-    editorRef.value.handleToolbarAction(action, emoji)
-  }
+ if (editorRef.value) {
+ editorRef.value.handleToolbarAction(action, emoji);
+ }
 }
-
-// Keyboard shortcuts
 function handleKeydown(event) {
-  if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-    event.preventDefault()
-    handleSave()
-  } else if ((event.ctrlKey || event.metaKey) && event.key === 'o') {
-    event.preventDefault()
-    handleOpen()
-  } else if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
-    event.preventDefault()
-    handleNew()
-  }
+ if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+ event.preventDefault();
+ handleSave();
+ }
+ else if ((event.ctrlKey || event.metaKey) && event.key === 'o') {
+ event.preventDefault();
+ handleOpen();
+ }
+ else if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+ event.preventDefault();
+ handleNew();
+ }
 }
 </script>
 
 <template>
   <div class="app" @keydown="handleKeydown" tabindex="0">
-    <!-- File menu bar -->
     <header class="menu-bar">
       <div class="menu-left">
-        <button @click="handleNew" title="新建 (Ctrl+N)" class="menu-btn">
-          📄 新建
+        <button @click="handleNew" :title="t('common.new') + ' (Ctrl+N)'" class="menu-btn">
+          📄 {{ t('common.new') }}
         </button>
-        <button @click="handleOpen" title="打开 (Ctrl+O)" class="menu-btn">
-          📂 打开
+        <button @click="handleOpen" :title="t('common.open') + ' (Ctrl+O)'" class="menu-btn">
+          📂 {{ t('common.open') }}
         </button>
         <button 
           @click="handleSave" 
           :disabled="autoSaveEnabled" 
-          :title="autoSaveEnabled ? '自动保存已启用' : '保存 (Ctrl+S)'" 
+          :title="autoSaveEnabled ? t('common.autoSave') + ' ' + t('common.enabled') : t('common.save') + ' (Ctrl+S)'" 
           class="menu-btn"
           :class="{ 'menu-btn-disabled': autoSaveEnabled }"
         >
-          💾 保存
+          💾 {{ t('common.save') }}
         </button>
-        <button @click="handleSaveAs" title="另存为" class="menu-btn">
-          另存为
+        <button @click="handleSaveAs" :title="t('common.saveAs')" class="menu-btn">
+          {{ t('common.saveAs') }}
         </button>
       </div>
       <div class="menu-right">
         <label 
           class="autosave-toggle" 
           :class="{ 'autosave-disabled': !currentFilePath }"
-          :title="currentFilePath ? '自动保存' : '请先保存文件以启用自动保存'"
+          :title="currentFilePath ? t('common.autoSave') : t('common.pleaseSaveFirst')"
         >
           <input 
             type="checkbox" 
@@ -286,28 +253,34 @@ function handleKeydown(event) {
             @change="handleAutoSaveToggle"
           />
           <span class="toggle-slider"></span>
-          <span class="toggle-label">自动保存</span>
+          <span class="toggle-label">{{ t('common.autoSave') }}</span>
         </label>
         <button 
           @click="handleThemeChange" 
           class="theme-toggle-btn"
-          :title="'切换主题 (当前: ' + themeDisplayText + ')'"
+          :title="t('common.theme') + ' (' + themeDisplayText + ')'"
         >
           <svg v-if="themeMode === 'light'" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 000-1.41l-1.06-1.06zm1.06-10.96a.996.996 0 000-1.41.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 000 1.41.996.996 0 001.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06z"/></svg>
           <svg v-else-if="themeMode === 'dark'" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 01-4.4 2.26 5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
           <svg v-else viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
           <span class="theme-text">{{ themeDisplayText }}</span>
         </button>
+        <select 
+          v-model="currentLanguage" 
+          @change="(e) => handleLanguageChange(e.target.value)"
+          class="language-select"
+          :title="t('common.language')"
+        >
+          <option v-for="lang in availableLanguages" :key="lang" :value="lang">
+            {{ getCurrentMessages().languages[lang] }}
+          </option>
+        </select>
         <span v-if="currentFilePath" class="file-path">{{ getFileName() }}</span>
-        <span v-else class="file-path">未命名文档</span>
+        <span v-else class="file-path">{{ t('common.untitled') }}</span>
         <span v-if="isModified" class="modified-indicator">*</span>
       </div>
     </header>
-
-    <!-- Formatting toolbar -->
     <Toolbar @action="handleToolbarAction" />
-
-    <!-- Editor -->
     <main class="editor-wrapper">
       <MarkdownEditor 
         ref="editorRef"
@@ -319,7 +292,6 @@ function handleKeydown(event) {
 </template>
 
 <style>
-/* CSS Variables for theming */
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f5;
@@ -336,7 +308,6 @@ function handleKeydown(event) {
   --notification-text: #ffffff;
 }
 
-/* Light theme (explicit) */
 .light-theme {
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f5;
@@ -353,7 +324,6 @@ function handleKeydown(event) {
   --notification-text: #ffffff;
 }
 
-/* Dark theme */
 .dark-theme {
   --bg-primary: #1e1e1e;
   --bg-secondary: #252525;
@@ -388,7 +358,6 @@ body {
   flex-direction: column;
 }
 
-/* Menu bar styles */
 .menu-bar {
   height: 44px;
   background: linear-gradient(to bottom, var(--bg-primary), var(--bg-secondary));
@@ -440,7 +409,26 @@ body {
   font-size: 13px;
 }
 
-/* Theme toggle button */
+.language-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 12px;
+  transition: background-color 0.15s;
+}
+
+.language-select:hover {
+  background: var(--hover-bg);
+}
+
+.language-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
 .theme-toggle-btn {
   display: flex;
   align-items: center;
@@ -467,7 +455,6 @@ body {
   margin-left: 2px;
 }
 
-/* Auto save toggle switch */
 .autosave-toggle {
   display: flex;
   align-items: center;
@@ -538,13 +525,11 @@ body {
   font-size: 16px;
 }
 
-/* Editor wrapper */
 .editor-wrapper {
   flex: 1;
   overflow: hidden;
 }
 
-/* Notification */
 .notification {
   position: fixed;
   top: 80px;
@@ -569,4 +554,3 @@ body {
   }
 }
 </style>
-

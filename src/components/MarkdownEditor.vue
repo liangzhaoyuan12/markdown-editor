@@ -23,6 +23,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { marked } from 'marked'
+import { t } from '../i18n/index.js'
 
 const props = defineProps({
   modelValue: {
@@ -38,7 +39,6 @@ const previewRef = ref(null)
 const content = ref(props.modelValue)
 let isSyncing = false
 
-// Convert markdown to HTML
 const previewHtml = computed(() => {
   return marked(content.value || '')
 })
@@ -47,7 +47,6 @@ function onInput() {
   emit('update:modelValue', content.value)
 }
 
-// Insert text at cursor position or wrap selection
 function insertText(before, after = '') {
   const textarea = textareaRef.value
   if (!textarea) return
@@ -61,7 +60,6 @@ function insertText(before, after = '') {
   
   emit('update:modelValue', content.value)
   
-  // Restore cursor position
   setTimeout(() => {
     textarea.focus()
     if (selectedText) {
@@ -72,7 +70,6 @@ function insertText(before, after = '') {
   }, 0)
 }
 
-// Insert text at the beginning of current line
 function insertLinePrefix(prefix) {
   const textarea = textareaRef.value
   if (!textarea) return
@@ -90,7 +87,6 @@ function insertLinePrefix(prefix) {
   }, 0)
 }
 
-// Handle toolbar actions
 function handleToolbarAction(action, emoji = null) {
   const textarea = textareaRef.value
   if (!textarea) {
@@ -172,7 +168,7 @@ function handleToolbarAction(action, emoji = null) {
       }
       break
     case 'clear':
-      if (confirm('确定要清空所有内容吗？')) {
+      if (confirm(t('common.confirmClear'))) {
         content.value = ''
         emit('update:modelValue', '')
       }
@@ -183,7 +179,6 @@ function handleToolbarAction(action, emoji = null) {
   }
 }
 
-// Expose handleToolbarAction for parent component
 defineExpose({
   handleToolbarAction,
   getMarkdown: () => content.value,
@@ -214,7 +209,6 @@ function onPreviewScroll(e) {
   setTimeout(() => { isSyncing = false }, 50)
 }
 
-// Watch for external content changes
 watch(() => props.modelValue, (newValue) => {
   if (content.value !== newValue) {
     content.value = newValue
@@ -261,7 +255,6 @@ watch(() => props.modelValue, (newValue) => {
   color: var(--text-primary);
 }
 
-/* Markdown styles */
 .markdown-body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   line-height: 1.6;
