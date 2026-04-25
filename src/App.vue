@@ -14,11 +14,18 @@ const themeMode = ref('system');
 const isDarkMode = ref(false);
 const currentLanguage = ref(getSavedLanguage());
 onMounted(() => {
+ // 加载主题设置
  const savedTheme = localStorage.getItem('theme-mode');
  if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
  themeMode.value = savedTheme;
  }
  updateTheme();
+ 
+ // 加载自动保存设置
+ const savedAutoSave = localStorage.getItem('auto-save-enabled');
+ if (savedAutoSave === 'true') {
+   autoSaveEnabled.value = true;
+ }
  
  // 监听从文件管理器打开文件的事件
  listen('open-file', (event) => {
@@ -30,6 +37,14 @@ onMounted(() => {
 watch(themeMode, () => {
  localStorage.setItem('theme-mode', themeMode.value);
  updateTheme();
+});
+
+// 监听自动保存状态变化，保存到 localStorage
+watch(autoSaveEnabled, (newValue) => {
+ localStorage.setItem('auto-save-enabled', newValue.toString());
+ if (newValue && currentFilePath.value) {
+   performAutoSave();
+ }
 });
 function updateTheme() {
  if (themeMode.value === 'system') {
@@ -87,6 +102,7 @@ async function handleNew() {
  content.value = '# New Document\n\n';
  currentFilePath.value = null;
  isModified.value = false;
+ // 新建文档时关闭自动保存，因为没有文件路径
  autoSaveEnabled.value = false;
 }
 async function handleOpen() {
@@ -117,7 +133,7 @@ async function openFileFromPath(filePath) {
  content.value = fileContent;
  currentFilePath.value = filePath;
  isModified.value = false;
- autoSaveEnabled.value = false; // 重置自动保存状态
+ // 不再重置自动保存状态，保持用户的偏好设置
  }
  catch (error) {
  alert('打开文件失败: ' + error);
