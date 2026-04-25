@@ -21,7 +21,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import { t } from '../i18n/index.js'
 
@@ -39,12 +39,53 @@ const previewRef = ref(null)
 const content = ref(props.modelValue)
 let isSyncing = false
 
+// 历史记录管理
+const history = ref([props.modelValue])
+const historyIndex = ref(0)
+const maxHistorySize = 50
+
 const previewHtml = computed(() => {
   return marked(content.value || '')
 })
 
 function onInput() {
   emit('update:modelValue', content.value)
+  
+  // 添加到历史记录
+  addToHistory(content.value)
+}
+
+function addToHistory(newContent) {
+  // 如果当前不在历史记录的末尾，删除后面的记录
+  if (historyIndex.value < history.value.length - 1) {
+    history.value = history.value.slice(0, historyIndex.value + 1)
+  }
+  
+  // 添加新内容
+  history.value.push(newContent)
+  historyIndex.value = history.value.length - 1
+  
+  // 限制历史记录大小
+  if (history.value.length > maxHistorySize) {
+    history.value.shift()
+    historyIndex.value--
+  }
+}
+
+function undo() {
+  if (historyIndex.value > 0) {
+    historyIndex.value--
+    content.value = history.value[historyIndex.value]
+    emit('update:modelValue', content.value)
+  }
+}
+
+function redo() {
+  if (historyIndex.value < history.value.length - 1) {
+    historyIndex.value++
+    content.value = history.value[historyIndex.value]
+    emit('update:modelValue', content.value)
+  }
 }
 
 function insertText(before, after = '') {
@@ -97,10 +138,10 @@ function handleToolbarAction(action, emoji = null) {
   
   switch (action) {
     case 'undo':
-      document.execCommand('undo')
+      undo()
       break
     case 'redo':
-      document.execCommand('redo')
+      redo()
       break
     case 'bold':
       insertText('**', '**')
@@ -212,7 +253,40 @@ function onPreviewScroll(e) {
 watch(() => props.modelValue, (newValue) => {
   if (content.value !== newValue) {
     content.value = newValue
+    // 当外部改变内容时，也添加到历史记录
+    addToHistory(newValue)
   }
+})
+
+// 键盘事件处理
+function handleKeydown(event) {
+  // 检查是否在 textarea 中
+  if (event.target !== textareaRef.value) return
+  
+  // Ctrl/Cmd + Z: 撤销
+  if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+    event.preventDefault()
+    undo()
+  }
+  // Ctrl/Cmd + Y 或 Ctrl/Cmd + Shift + Z: 重做
+  else if ((event.ctrlKey || event.metaKey) && (event.key === 'y' || (event.key === 'z' && event.shiftKey))) {
+    event.preventDefault()
+    redo()
+  }
+}
+
+onMounted(() => {
+  // 初始化历史记录
+  history.value = [content.value]
+  historyIndex.value = 0
+  
+  // 添加键盘事件监听
+  document.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  // 移除键盘事件监听
+  document.removeEventListener('keydown', handleKeydown)
 })
 </script>
 
