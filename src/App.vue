@@ -1,5 +1,6 @@
 <script setup>import { ref, shallowRef, watch, onMounted, computed } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import MarkdownEditor from './components/MarkdownEditor.vue';
 import Toolbar from './components/Toolbar.vue';
 import { t, getSavedLanguage, setLanguage, getCurrentMessages, availableLanguages } from './i18n/index.js';
@@ -18,6 +19,13 @@ onMounted(() => {
  themeMode.value = savedTheme;
  }
  updateTheme();
+ 
+ // 监听从文件管理器打开文件的事件
+ listen('open-file', (event) => {
+   const filePath = event.payload;
+   console.log('Opening file:', filePath);
+   openFileFromPath(filePath);
+ });
 });
 watch(themeMode, () => {
  localStorage.setItem('theme-mode', themeMode.value);
@@ -90,11 +98,26 @@ async function handleOpen() {
  }
  const filePath = await invoke('open_file_dialog');
  if (filePath) {
+ await openFileFromPath(filePath);
+ }
+ }
+ catch (error) {
+ alert('打开文件失败: ' + error);
+ }
+}
+
+async function openFileFromPath(filePath) {
+ try {
+ if (isModified.value) {
+ const confirm = window.confirm(t('common.confirmClose'));
+ if (!confirm)
+ return;
+ }
  const fileContent = await invoke('read_file', { path: filePath });
  content.value = fileContent;
  currentFilePath.value = filePath;
  isModified.value = false;
- }
+ autoSaveEnabled.value = false; // 重置自动保存状态
  }
  catch (error) {
  alert('打开文件失败: ' + error);

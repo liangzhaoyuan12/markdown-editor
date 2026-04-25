@@ -1,5 +1,6 @@
-use tauri::{Emitter, Listener};
+use tauri::{Emitter, Listener, Manager};
 use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_single_instance::init as single_instance_init;
 
 #[tauri::command]
 async fn read_file(path: String) -> Result<String, String> {
@@ -44,6 +45,16 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(single_instance_init(|app, argv, _cwd| {
+            // 当第二个实例启动时，将文件路径发送到主实例
+            println!("Second instance launched with args: {:?}", argv);
+            if let Some(file_path) = argv.get(1) {
+                println!("Opening file from second instance: {}", file_path);
+                if let Some(window) = app.get_webview_window("main") {
+                    window.emit("open-file", file_path).ok();
+                }
+            }
+        }))
         .invoke_handler(tauri::generate_handler![
             read_file,
             write_file,
@@ -51,21 +62,27 @@ pub fn run() {
             save_file_dialog
         ])
         .setup(|app| {
-            // 监听文件打开事件
+            // 监听文件拖放事件
             app.listen("tauri://file-drop", move |event| {
                 let file_path = event.payload();
                 println!("File dropped: {}", file_path);
-                // 这里可以触发前端打开文件的逻辑
             });
-            Ok(())
-        })
-        .on_page_load(|window, _payload| {
-            // 检查是否有命令行参数传入的文件路径
+            
+            // 在应用启动时处理命令行参数（首次启动）
+            let handle = app.handle().clone();
             let args: Vec<String> = std::env::args().collect();
             if args.len() > 1 {
-                let file_path = &args[1];
-                window.emit("open-file", file_path).ok();
+                let file_path = args[1].clone();
+                println!("Opening file from command line at startup: {}", file_path);
+                // 延迟发送事件，确保窗口已经准备好
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                    if let Some(window) = handle.get_webview_window("main") {
+                        window.emit("open-file", file_path).ok();
+                    }
+                });
             }
+            Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
