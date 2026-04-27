@@ -44,6 +44,10 @@ export default {
     clear: 'Очистить',
     search: 'Поиск'
   },
+  editor: {
+    tableRows: 'Введите количество строк:',
+    tableCols: 'Введите количество столбцов:'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',

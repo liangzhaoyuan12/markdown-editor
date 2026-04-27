@@ -44,6 +44,10 @@ export default {
     clear: '清空',
     search: '搜尋'
   },
+  editor: {
+    tableRows: '請輸入行數:',
+    tableCols: '請輸入列數:'
+  },
   languages: {
     'zh-CN': '簡體中文',
     'zh-TW': '繁體中文',

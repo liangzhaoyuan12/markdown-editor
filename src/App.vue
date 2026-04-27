@@ -240,6 +240,12 @@ function handleToolbarAction(action, emoji = null) {
  editorRef.value.handleToolbarAction(action, emoji);
  }
 }
+
+function handleTableInsert(rows, cols) {
+ if (editorRef.value) {
+   editorRef.value.handleToolbarAction('table-insert', { rows, cols });
+ }
+}
 function handleKeydown(event) {
  if ((event.ctrlKey || event.metaKey) && event.key === 's') {
  event.preventDefault();
@@ -319,7 +325,7 @@ function handleKeydown(event) {
         <span v-if="isModified" class="modified-indicator">*</span>
       </div>
     </header>
-    <Toolbar @action="handleToolbarAction" />
+    <Toolbar @action="handleToolbarAction" @table-insert="handleTableInsert" />
     <main class="editor-wrapper">
       <MarkdownEditor 
         ref="editorRef"

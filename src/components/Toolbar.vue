@@ -66,7 +66,7 @@
       <button @click="handleAction('codeblock')" :title="t('toolbar.codeblock')" class="toolbar-btn">
         <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
       </button>
-      <button @click="handleAction('table')" :title="t('toolbar.table')" class="toolbar-btn">
+      <button @click="handleAction('table')" :title="t('toolbar.table')" class="toolbar-btn" :class="{ 'toolbar-btn-active': showTableDialog }">
         <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM8 20H4v-4h4v4zm0-6H4v-4h4v4zm0-6H4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4zm6 12h-4v-4h4v4zm0-6h-4v-4h4v4zm0-6h-4V4h4v4z"/></svg>
       </button>
     </div>
@@ -117,6 +117,55 @@
         <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
       </button>
     </div>
+
+    <!-- 表格创建弹窗 -->
+    <div v-if="showTableDialog" class="table-dialog" @click.stop>
+      <div class="table-dialog-header">
+        <span class="table-dialog-title">{{ t('toolbar.table') }}</span>
+        <button @click="closeTableDialog" class="table-dialog-close" :title="t('common.close') || '关闭'">
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </div>
+      <div class="table-dialog-content">
+        <div class="table-input-group">
+          <label for="table-rows">{{ t('editor.tableRows') || '行数:' }}</label>
+          <input 
+            id="table-rows"
+            v-model.number="tableRows" 
+            type="number" 
+            min="1" 
+            max="20"
+            class="table-input"
+          />
+        </div>
+        <div class="table-input-group">
+          <label for="table-cols">{{ t('editor.tableCols') || '列数:' }}</label>
+          <input 
+            id="table-cols"
+            v-model.number="tableCols" 
+            type="number" 
+            min="1" 
+            max="10"
+            class="table-input"
+          />
+        </div>
+        <button @click="insertTable" class="table-insert-btn">
+          {{ t('common.insert') || '插入表格' }}
+        </button>
+        <div class="table-preview">
+          <div class="table-preview-label">预览:</div>
+          <div class="table-preview-grid" :style="{
+            gridTemplateColumns: `repeat(${tableCols}, 1fr)`
+          }">
+            <div 
+              v-for="n in tableRows * tableCols" 
+              :key="n"
+              class="table-preview-cell"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -124,8 +173,11 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { t } from '../i18n/index.js'
 
-const emit = defineEmits(['action', 'emoji-insert'])
+const emit = defineEmits(['action', 'emoji-insert', 'table-insert'])
 const showEmojiPicker = ref(false)
+const showTableDialog = ref(false)
+const tableRows = ref(3)
+const tableCols = ref(3)
 const toolbarRef = ref(null)
 
 const emojiCategories = {
@@ -142,6 +194,10 @@ const emojiCategories = {
 function handleAction(action, emoji = null) {
   if (action === 'emoji' && !emoji) {
     showEmojiPicker.value = !showEmojiPicker.value
+    showTableDialog.value = false
+  } else if (action === 'table') {
+    showTableDialog.value = !showTableDialog.value
+    showEmojiPicker.value = false
   } else if (emoji) {
     emit('action', 'emoji-insert', emoji)
     showEmojiPicker.value = false
@@ -150,13 +206,29 @@ function handleAction(action, emoji = null) {
   }
 }
 
+function closeTableDialog() {
+  showTableDialog.value = false
+}
+
+function insertTable() {
+  const rows = Math.max(1, Math.min(tableRows.value, 20))
+  const cols = Math.max(1, Math.min(tableCols.value, 10))
+  emit('table-insert', rows, cols)
+  closeTableDialog()
+}
+
 function closeEmojiPicker() {
   showEmojiPicker.value = false
 }
 
 function handleClickOutside(event) {
-  if (showEmojiPicker.value && toolbarRef.value && !toolbarRef.value.contains(event.target)) {
-    showEmojiPicker.value = false
+  if (toolbarRef.value && !toolbarRef.value.contains(event.target)) {
+    if (showEmojiPicker.value) {
+      showEmojiPicker.value = false
+    }
+    if (showTableDialog.value) {
+      showTableDialog.value = false
+    }
   }
 }
 
@@ -340,5 +412,156 @@ onUnmounted(() => {
 
 .emoji-item:active {
   background: var(--active-bg);
+}
+
+/* 表格创建弹窗样式 */
+.table-dialog {
+  position: fixed;
+  top: 56px;
+  right: 140px;
+  width: 320px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.table-dialog-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.table-dialog-close {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background-color 0.15s;
+}
+
+.table-dialog-close:hover {
+  background: var(--hover-bg);
+}
+
+.table-dialog-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.table-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.table-input-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.table-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.table-input:focus {
+  border-color: #0366d6;
+}
+
+.dark-theme .table-input:focus {
+  border-color: #58a6ff;
+}
+
+.table-preview {
+  margin-top: 8px;
+}
+
+.table-preview-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.table-preview-grid {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  min-height: 80px;
+  grid-auto-rows: minmax(20px, 1fr);
+}
+
+.table-preview-cell {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  height: 24px;
+  width: 100%;
+}
+
+.table-insert-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #0366d6;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+.table-insert-btn:hover {
+  background: #0256c7;
+}
+
+.table-insert-btn:active {
+  background: #0145a8;
+}
+
+.dark-theme .table-insert-btn {
+  background: #58a6ff;
+}
+
+.dark-theme .table-insert-btn:hover {
+  background: #4896ef;
+}
+
+.dark-theme .table-insert-btn:active {
+  background: #3886df;
 }
 </style>

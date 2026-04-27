@@ -44,6 +44,10 @@ export default {
     clear: '지우기',
     search: '검색'
   },
+  editor: {
+    tableRows: '행 수를 입력하세요:',
+    tableCols: '열 수를 입력하세요:'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',

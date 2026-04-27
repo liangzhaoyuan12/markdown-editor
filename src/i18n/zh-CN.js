@@ -13,9 +13,10 @@ export default {
     untitled: '未命名文档',
     modified: '已修改',
     fileSaved: '文件已保存',
-    pleaseSaveFirst: '请先保存文件以启用自动保存功能。\n\n点击"保存"按钮选择保存位置后，即可使用自动保存。',
+    pleaseSaveFirst: '请先保存文件以启用自动保存功能。\n\n点击“保存”按钮选择保存位置后，即可使用自动保存。',
     confirmClose: '当前文件未保存，是否继续？',
-    confirmClear: '确定要清空所有内容吗？'
+    confirmClear: '确定要清空所有内容吗？',
+    insert: '插入表格'
   },
   toolbar: {
     undo: '撤销',
@@ -43,6 +44,10 @@ export default {
     emojiPickerTitle: '选择表情',
     clear: '清空',
     search: '搜索'
+  },
+  editor: {
+    tableRows: '请输入行数:',
+    tableCols: '请输入列数:'
   },
   languages: {
     'zh-CN': '简体中文',

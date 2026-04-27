@@ -128,6 +128,32 @@ function insertLinePrefix(prefix) {
   }, 0)
 }
 
+function generateTable(rows, cols) {
+  let table = '\n'
+  
+  // 生成表头
+  for (let i = 0; i < cols; i++) {
+    table += `| Column ${i + 1} `
+  }
+  table += '|\n'
+  
+  // 生成分隔线
+  for (let i = 0; i < cols; i++) {
+    table += '|---------- '
+  }
+  table += '|\n'
+  
+  // 生成数据行
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      table += `| Cell ${row * cols + col + 1}   `
+    }
+    table += '|\n'
+  }
+  
+  return table
+}
+
 function handleToolbarAction(action, emoji = null) {
   const textarea = textareaRef.value
   if (!textarea) {
@@ -194,8 +220,12 @@ function handleToolbarAction(action, emoji = null) {
     case 'codeblock':
       insertText('\n```\n', '\n```\n')
       break
-    case 'table':
-      insertText('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n')
+    case 'table-insert':
+      // 从弹窗接收行数和列数
+      if (emoji && emoji.rows && emoji.cols) {
+        const tableText = generateTable(emoji.rows, emoji.cols)
+        insertText(tableText)
+      }
       break
     case 'datetime':
       insertText(new Date().toLocaleString())

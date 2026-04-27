@@ -15,7 +15,8 @@ export default {
     fileSaved: 'File saved',
     pleaseSaveFirst: 'Please save the file first to enable auto-save.\n\nClick the "Save" button to choose a save location, then auto-save will be available.',
     confirmClose: 'The current file is not saved. Continue anyway?',
-    confirmClear: 'Are you sure you want to clear all content?'
+    confirmClear: 'Are you sure you want to clear all content?',
+    insert: 'Insert Table'
   },
   toolbar: {
     undo: 'Undo',
@@ -43,6 +44,10 @@ export default {
     emojiPickerTitle: 'Choose Emoji',
     clear: 'Clear',
     search: 'Search'
+  },
+  editor: {
+    tableRows: 'Enter number of rows:',
+    tableCols: 'Enter number of columns:'
   },
   languages: {
     'zh-CN': '简体中文',

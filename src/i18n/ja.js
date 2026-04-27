@@ -44,6 +44,10 @@ export default {
     clear: '消去',
     search: '検索'
   },
+  editor: {
+    tableRows: '行数を入力してください:',
+    tableCols: '列数を入力してください:'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',
