@@ -15,7 +15,8 @@ export default {
     fileSaved: 'ファイルを保存しました',
     pleaseSaveFirst: '自動保存を有効にするには、まずファイルを保存してください。\n\n「保存」ボタンをクリックして保存場所を選択すると、自動保存を使用できます。',
     confirmClose: '現在のファイルは保存されていません。続行しますか？',
-    confirmClear: 'すべての内容を消去してもよろしいですか？'
+    confirmClear: 'すべての内容を消去してもよろしいですか？',
+    followSystem: 'システムに従う'
   },
   toolbar: {
     undo: '元に戻す',

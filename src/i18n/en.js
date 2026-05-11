@@ -16,7 +16,8 @@ export default {
     pleaseSaveFirst: 'Please save the file first to enable auto-save.\n\nClick the "Save" button to choose a save location, then auto-save will be available.',
     confirmClose: 'The current file is not saved. Continue anyway?',
     confirmClear: 'Are you sure you want to clear all content?',
-    insert: 'Insert Table'
+    insert: 'Insert Table',
+    followSystem: 'Follow System'
   },
   toolbar: {
     undo: 'Undo',

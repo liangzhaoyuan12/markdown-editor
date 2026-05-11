@@ -85,9 +85,8 @@ const themeDisplayText = computed(() => {
  return texts[themeMode.value] || 'System';
 });
 function handleLanguageChange(lang) {
- currentLanguage.value = lang;
- setLanguage(lang);
- location.reload();
+  currentLanguage.value = lang;
+  setLanguage(lang);
 }
 const currentLangText = computed(() => {
  const messages = getCurrentMessages();
@@ -320,6 +319,7 @@ function handleKeydown(event) {
           class="language-select"
           :title="t('common.language')"
         >
+          <option value="system">{{ t('common.followSystem') }}</option>
           <option v-for="lang in availableLanguages" :key="lang" :value="lang">
             {{ getCurrentMessages().languages[lang] }}
           </option>

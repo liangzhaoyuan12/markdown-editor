@@ -15,7 +15,8 @@ export default {
     fileSaved: '파일이 저장되었습니다',
     pleaseSaveFirst: '자동 저장을 활성화하려면 먼저 파일을 저장하세요.\n\n"저장" 버튼을 클릭하여 저장 위치를 선택한 후 자동 저장을 사용할 수 있습니다.',
     confirmClose: '현재 파일이 저장되지 않았습니다. 계속하시겠습니까?',
-    confirmClear: '모든 내용을 지우시겠습니까?'
+    confirmClear: '모든 내용을 지우시겠습니까?',
+    followSystem: '시스템 설정 따르기'
   },
   toolbar: {
     undo: '실행 취소',

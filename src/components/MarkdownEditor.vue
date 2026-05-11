@@ -448,8 +448,9 @@ function onPreviewScroll(e) {
 watch(() => props.modelValue, (newValue) => {
   if (content.value !== newValue) {
     content.value = newValue
-    // 当外部改变内容时，也添加到历史记录
-    addToHistory(newValue)
+    // 外部内容变更（如打开文件）时重置历史记录
+    history.value = [newValue]
+    historyIndex.value = 0
   }
 })
 

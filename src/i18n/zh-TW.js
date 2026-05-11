@@ -15,7 +15,8 @@ export default {
     fileSaved: '檔案已儲存',
     pleaseSaveFirst: '請先儲存檔案以啟用自動儲存功能。\n\n點擊"儲存"按鈕選擇儲存位置後，即可使用自動儲存。',
     confirmClose: '目前檔案未儲存，是否繼續？',
-    confirmClear: '確定要清空所有內容嗎？'
+    confirmClear: '確定要清空所有內容嗎？',
+    followSystem: '跟隨系統'
   },
   toolbar: {
     undo: '撤銷',
