@@ -501,6 +501,7 @@ onUnmounted(() => {
 .editor-pane {
   border-right: 1px solid var(--border-color);
   position: relative;
+  overflow: hidden;
 }
 
 .editor-content {
