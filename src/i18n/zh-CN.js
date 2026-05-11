@@ -49,6 +49,13 @@ export default {
     tableRows: '请输入行数:',
     tableCols: '请输入列数:'
   },
+  search: {
+    placeholder: '查找...',
+    prev: '上一个',
+    next: '下一个',
+    close: '关闭',
+    noResults: '无结果'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',

@@ -48,6 +48,13 @@ export default {
     tableRows: '행 수를 입력하세요:',
     tableCols: '열 수를 입력하세요:'
   },
+  search: {
+    placeholder: '찾기...',
+    prev: '이전',
+    next: '다음',
+    close: '닫기',
+    noResults: '결과 없음'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',

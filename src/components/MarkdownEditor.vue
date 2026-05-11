@@ -1,13 +1,37 @@
 <template>
   <div class="editor-wrapper">
-    <div class="editor-pane">
-      <textarea
-        ref="textareaRef"
-        v-model="content"
-        class="editor-textarea"
-        @input="onInput"
-        @scroll="onEditorScroll"
-      ></textarea>
+    <div class="editor-pane" :class="{ 'search-visible': showSearch }">
+      <div v-if="showSearch" class="search-bar">
+        <input 
+          ref="searchInputRef"
+          v-model="searchQuery" 
+          @input="performSearch"
+          @keydown="handleSearchKeydown"
+          :placeholder="t('search.placeholder')" 
+          class="search-input"
+        />
+        <span class="search-count">{{ searchCountText }}</span>
+        <button @click="prevMatch" :disabled="searchResults.length === 0" :title="t('search.prev')" class="search-btn">▲</button>
+        <button @click="nextMatch" :disabled="searchResults.length === 0" :title="t('search.next')" class="search-btn">▼</button>
+        <button @click="toggleSearch" :title="t('search.close')" class="search-btn search-close">✕</button>
+      </div>
+      <div class="editor-content">
+        <pre
+          v-if="showSearch && searchQuery"
+          ref="highlightRef"
+          class="highlight-layer"
+          v-html="highlightedHtml"
+          aria-hidden="true"
+        ></pre>
+        <textarea
+          ref="textareaRef"
+          v-model="content"
+          class="editor-textarea"
+          :class="{ 'searching': showSearch && searchQuery && searchResults.length > 0 }"
+          @input="onInput"
+          @scroll="onEditorScroll"
+        ></textarea>
+      </div>
     </div>
     <div class="preview-pane">
       <div
@@ -21,8 +45,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { marked } from 'marked'
+import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import { t } from '../i18n/index.js'
 
 const props = defineProps({
@@ -36,16 +60,49 @@ const emit = defineEmits(['update:modelValue'])
 
 const textareaRef = ref(null)
 const previewRef = ref(null)
+const searchInputRef = ref(null)
+const highlightRef = ref(null)
 const content = ref(props.modelValue)
 let isSyncing = false
+
+// 搜索状态
+const showSearch = ref(false)
+const searchQuery = ref('')
+const searchResults = ref([])
+const currentResultIndex = ref(-1)
 
 // 历史记录管理
 const history = ref([props.modelValue])
 const historyIndex = ref(0)
 const maxHistorySize = 50
 
-const previewHtml = computed(() => {
-  return marked(content.value || '')
+const previewHtml = ref('')
+let renderTimer = null
+const RENDER_DEBOUNCE_MS = 120
+
+async function renderMarkdown() {
+  const md = content.value
+  if (!md) {
+    previewHtml.value = ''
+    return
+  }
+  try {
+    previewHtml.value = await invoke('markdown_to_html', { markdown: md })
+  } catch (e) {
+    console.error('Markdown render failed:', e)
+  }
+}
+
+function scheduleRender() {
+  if (renderTimer) clearTimeout(renderTimer)
+  renderTimer = setTimeout(renderMarkdown, RENDER_DEBOUNCE_MS)
+}
+
+watch(content, () => {
+  scheduleRender()
+  if (showSearch.value && searchQuery.value) {
+    performSearch()
+  }
 })
 
 function onInput() {
@@ -245,13 +302,113 @@ function handleToolbarAction(action, emoji = null) {
       }
       break
     case 'search':
-      textarea.select()
+      toggleSearch()
       break
+  }
+}
+
+const searchCountText = computed(() => {
+  if (!searchQuery.value) return ''
+  if (searchResults.value.length === 0) return t('search.noResults')
+  if (currentResultIndex.value < 0) return `${searchResults.value.length}`
+  return `${currentResultIndex.value + 1}/${searchResults.value.length}`
+})
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+const highlightedHtml = computed(() => {
+  const text = content.value
+  if (!text) return ''
+  const results = searchResults.value
+  if (!searchQuery.value || results.length === 0) return escapeHtml(text)
+
+  let html = ''
+  let lastEnd = 0
+  const currentIdx = currentResultIndex.value
+  for (let i = 0; i < results.length; i++) {
+    const match = results[i]
+    html += escapeHtml(text.slice(lastEnd, match.start))
+    html += '<mark' + (i === currentIdx ? ' class="current"' : '') + '>' + escapeHtml(text.slice(match.start, match.end)) + '</mark>'
+    lastEnd = match.end
+  }
+  html += escapeHtml(text.slice(lastEnd))
+  return html
+})
+
+function toggleSearch() {
+  showSearch.value = !showSearch.value
+  if (showSearch.value) {
+    nextTick(() => {
+      searchInputRef.value?.focus()
+    })
+  } else {
+    searchQuery.value = ''
+    searchResults.value = []
+    currentResultIndex.value = -1
+  }
+}
+
+function performSearch() {
+  const query = searchQuery.value
+  const text = content.value
+  searchResults.value = []
+  currentResultIndex.value = -1
+
+  if (!query || !text) return
+
+  let start = 0
+  while ((start = text.indexOf(query, start)) !== -1) {
+    searchResults.value.push({ start, end: start + query.length })
+    start += query.length
+  }
+}
+
+function selectMatch(index) {
+  const textarea = textareaRef.value
+  if (!textarea || index < 0 || index >= searchResults.value.length) return
+
+  const match = searchResults.value[index]
+  currentResultIndex.value = index
+  textarea.focus()
+  textarea.setSelectionRange(match.start, match.end)
+}
+
+function nextMatch() {
+  if (searchResults.value.length === 0) return
+  const next = currentResultIndex.value < 0 ? 0 : (currentResultIndex.value + 1) % searchResults.value.length
+  selectMatch(next)
+}
+
+function prevMatch() {
+  if (searchResults.value.length === 0) return
+  const prev = currentResultIndex.value < 0 ? searchResults.value.length - 1
+    : (currentResultIndex.value - 1 + searchResults.value.length) % searchResults.value.length
+  selectMatch(prev)
+}
+
+function handleSearchKeydown(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    if (event.shiftKey) {
+      prevMatch()
+    } else {
+      nextMatch()
+    }
+  } else if (event.key === 'Escape') {
+    event.preventDefault()
+    toggleSearch()
   }
 }
 
 defineExpose({
   handleToolbarAction,
+  toggleSearch,
   getMarkdown: () => content.value,
   setMarkdown: (text) => { content.value = text }
 })
@@ -265,6 +422,10 @@ function onEditorScroll(e) {
   const scrollRatio = textarea.scrollTop / (textarea.scrollHeight - textarea.clientHeight)
   preview.scrollTop = scrollRatio * (preview.scrollHeight - preview.clientHeight)
   
+  if (highlightRef.value) {
+    highlightRef.value.scrollTop = textarea.scrollTop
+  }
+  
   setTimeout(() => { isSyncing = false }, 50)
 }
 
@@ -276,6 +437,10 @@ function onPreviewScroll(e) {
   const textarea = textareaRef.value
   const scrollRatio = preview.scrollTop / (preview.scrollHeight - preview.clientHeight)
   textarea.scrollTop = scrollRatio * (textarea.scrollHeight - textarea.clientHeight)
+  
+  if (highlightRef.value) {
+    highlightRef.value.scrollTop = textarea.scrollTop
+  }
   
   setTimeout(() => { isSyncing = false }, 50)
 }
@@ -306,17 +471,15 @@ function handleKeydown(event) {
 }
 
 onMounted(() => {
-  // 初始化历史记录
   history.value = [content.value]
   historyIndex.value = 0
-  
-  // 添加键盘事件监听
   document.addEventListener('keydown', handleKeydown)
+  renderMarkdown()
 })
 
 onUnmounted(() => {
-  // 移除键盘事件监听
   document.removeEventListener('keydown', handleKeydown)
+  if (renderTimer) clearTimeout(renderTimer)
 })
 </script>
 
@@ -336,6 +499,13 @@ onUnmounted(() => {
 
 .editor-pane {
   border-right: 1px solid var(--border-color);
+  position: relative;
+}
+
+.editor-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .editor-textarea {
@@ -350,6 +520,161 @@ onUnmounted(() => {
   line-height: 1.6;
   background: var(--bg-primary);
   color: var(--text-primary);
+  position: relative;
+  z-index: 2;
+}
+
+.editor-textarea.searching {
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: var(--text-primary);
+  background: transparent;
+}
+
+.editor-textarea.searching::selection {
+  background: transparent;
+}
+
+.highlight-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  margin: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow: hidden;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.highlight-layer :deep(mark) {
+  background: #b8d4f0;
+  color: #1a1a1a;
+  border-radius: 2px;
+}
+
+.highlight-layer :deep(mark.current) {
+  background: #1a73e8;
+  color: #ffffff;
+}
+
+.dark-theme .highlight-layer :deep(mark) {
+  background: #2a4a6b;
+  color: #d4d4d4;
+}
+
+.dark-theme .highlight-layer :deep(mark.current) {
+  background: #4a9eff;
+  color: #ffffff;
+}
+
+.editor-pane.search-visible .editor-textarea {
+  padding-top: 44px;
+}
+
+.editor-pane.search-visible .highlight-layer {
+  padding-top: 44px;
+}
+
+.search-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-right: none;
+  border-bottom-left-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+}
+
+.search-input {
+  width: 180px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  border-color: var(--accent-color);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  min-width: 40px;
+  text-align: center;
+  user-select: none;
+}
+
+.search-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+  transition: background-color 0.15s;
+}
+
+.search-btn:hover {
+  background: var(--hover-bg);
+}
+
+.search-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.search-btn:disabled:hover {
+  background: var(--bg-secondary);
+}
+
+.search-close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.search-close:hover {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.editor-pane.search-visible .editor-textarea {
+  padding-top: 44px;
 }
 
 .preview-content {

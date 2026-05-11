@@ -48,6 +48,13 @@ export default {
     tableRows: 'Введите количество строк:',
     tableCols: 'Введите количество столбцов:'
   },
+  search: {
+    placeholder: 'Найти...',
+    prev: 'Пред.',
+    next: 'След.',
+    close: 'Закрыть',
+    noResults: 'Нет результатов'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',

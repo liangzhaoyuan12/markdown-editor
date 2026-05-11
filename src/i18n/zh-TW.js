@@ -48,6 +48,13 @@ export default {
     tableRows: '請輸入行數:',
     tableCols: '請輸入列數:'
   },
+  search: {
+    placeholder: '尋找...',
+    prev: '上一個',
+    next: '下一個',
+    close: '關閉',
+    noResults: '無結果'
+  },
   languages: {
     'zh-CN': '簡體中文',
     'zh-TW': '繁體中文',

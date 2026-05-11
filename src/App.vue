@@ -247,18 +247,22 @@ function handleTableInsert(rows, cols) {
  }
 }
 function handleKeydown(event) {
- if ((event.ctrlKey || event.metaKey) && event.key === 's') {
- event.preventDefault();
- handleSave();
- }
- else if ((event.ctrlKey || event.metaKey) && event.key === 'o') {
- event.preventDefault();
- handleOpen();
- }
- else if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
- event.preventDefault();
- handleNew();
- }
+  if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+    event.preventDefault();
+    handleSave();
+  }
+  else if ((event.ctrlKey || event.metaKey) && event.key === 'o') {
+    event.preventDefault();
+    handleOpen();
+  }
+  else if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+    event.preventDefault();
+    handleNew();
+  }
+  else if ((event.ctrlKey || event.metaKey) && event.key === 'f') {
+    event.preventDefault();
+    editorRef.value?.toggleSearch();
+  }
 }
 </script>
 
@@ -455,9 +459,14 @@ body {
 }
 
 .language-select {
-  padding: 4px 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 4px 28px 4px 8px;
   border: 1px solid var(--border-color);
-  background: var(--bg-primary);
+  background-color: var(--bg-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
   border-radius: 4px;
   cursor: pointer;
   color: var(--text-primary);
@@ -466,12 +475,26 @@ body {
 }
 
 .language-select:hover {
-  background: var(--hover-bg);
+  background-color: var(--hover-bg);
 }
 
 .language-select:focus {
   outline: none;
   border-color: var(--accent-color);
+}
+
+.light-theme .language-select,
+.light-theme .language-select option {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #333333;
+}
+
+.dark-theme .language-select,
+.dark-theme .language-select option {
+  color-scheme: dark;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
 }
 
 .theme-toggle-btn {

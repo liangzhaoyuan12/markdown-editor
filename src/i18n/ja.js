@@ -48,6 +48,13 @@ export default {
     tableRows: '行数を入力してください:',
     tableCols: '列数を入力してください:'
   },
+  search: {
+    placeholder: '検索...',
+    prev: '前へ',
+    next: '次へ',
+    close: '閉じる',
+    noResults: '見つかりません'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',

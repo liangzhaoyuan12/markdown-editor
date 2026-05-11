@@ -49,6 +49,13 @@ export default {
     tableRows: 'Enter number of rows:',
     tableCols: 'Enter number of columns:'
   },
+  search: {
+    placeholder: 'Find...',
+    prev: 'Previous',
+    next: 'Next',
+    close: 'Close',
+    noResults: 'No results'
+  },
   languages: {
     'zh-CN': '简体中文',
     'zh-TW': '繁体中文',

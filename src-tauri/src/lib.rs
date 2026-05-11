@@ -1,3 +1,4 @@
+use pulldown_cmark::{html, Parser};
 use tauri::{Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 
@@ -27,6 +28,14 @@ async fn open_file_dialog(app_handle: tauri::AppHandle) -> Result<Option<String>
 }
 
 #[tauri::command]
+async fn markdown_to_html(markdown: String) -> Result<String, String> {
+    let parser = Parser::new(&markdown);
+    let mut html_output = String::with_capacity(markdown.len() * 2);
+    html::push_html(&mut html_output, parser);
+    Ok(html_output)
+}
+
+#[tauri::command]
 async fn save_file_dialog(app_handle: tauri::AppHandle, default_name: Option<String>) -> Result<Option<String>, String> {
     let file_path = app_handle
         .dialog()
@@ -48,7 +57,8 @@ pub fn run() {
             read_file,
             write_file,
             open_file_dialog,
-            save_file_dialog
+            save_file_dialog,
+            markdown_to_html
         ])
         .setup(|app| {
             // 在应用启动时处理命令行参数
