@@ -33,12 +33,10 @@
         ></textarea>
       </div>
     </div>
-    <div class="preview-pane">
+    <div ref="previewRef" class="preview-pane" @scroll="onPreviewScroll" @click="onPreviewClick">
       <div
-        ref="previewRef"
         class="preview-content markdown-body"
         v-html="previewHtml"
-        @scroll="onPreviewScroll"
       ></div>
     </div>
   </div>
@@ -47,12 +45,17 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { t } from '../i18n/index.js'
 
 const props = defineProps({
   modelValue: {
     type: String,
     default: ''
+  },
+  currentFilePath: {
+    type: String,
+    default: null
   }
 })
 
@@ -87,10 +90,68 @@ async function renderMarkdown() {
     return
   }
   try {
-    previewHtml.value = await invoke('markdown_to_html', { markdown: md })
+    let html = await invoke('markdown_to_html', { markdown: md })
+    html = addHeadingIds(html)
+    previewHtml.value = enhanceCodeBlocks(html)
   } catch (e) {
     console.error('Markdown render failed:', e)
   }
+}
+
+function addHeadingIds(html) {
+  return html.replace(
+    /<h([1-6])>(.*?)<\/h\1>/g,
+    (match, level, text) => {
+      const id = text
+        .replace(/<[^>]*>/g, '')
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+      return `<h${level} id="${id}">${text}</h${level}>`
+    }
+  )
+}
+
+function findAnchorPosition(content, anchorId) {
+  const lines = content.split('\n')
+  let position = 0
+  for (const line of lines) {
+    const match = line.match(/^#{1,6}\s+(.+)/)
+    if (match) {
+      const headingText = match[1].trim()
+      const generatedId = headingText
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+      if (generatedId === anchorId) {
+        return position
+      }
+    }
+    position += line.length + 1
+  }
+  return -1
+}
+
+function enhanceCodeBlocks(html) {
+  const copyLabel = t('codeBlock.copy')
+  return html.replace(
+    /<pre><code(\s+class="language-(\w+)")?>([\s\S]*?)<\/code><\/pre>/g,
+    (match, classAttr, lang, code) => {
+      const displayLang = lang || 'text'
+      const classPart = classAttr || ''
+      return `<div class="code-block-wrapper">
+        <div class="code-block-header">
+          <span class="code-block-lang">${displayLang}</span>
+          <button class="code-block-copy">${copyLabel}</button>
+        </div>
+        <pre><code${classPart}>${code}</code></pre>
+      </div>`
+    }
+  )
 }
 
 function scheduleRender() {
@@ -185,6 +246,43 @@ function insertLinePrefix(prefix) {
   }, 0)
 }
 
+function getOrderedListPrefix() {
+  const textarea = textareaRef.value
+  if (!textarea) return '1. '
+  
+  const text = content.value
+  const pos = textarea.selectionStart
+  const lineStart = text.lastIndexOf('\n', pos - 1) + 1
+
+  let searchPos = lineStart - 1
+  let lastNumber = 0
+
+  while (searchPos >= 0) {
+    const prevLineEnd = searchPos
+    const prevLineStart = text.lastIndexOf('\n', prevLineEnd - 1) + 1
+    const prevLine = text.substring(prevLineStart, prevLineEnd)
+
+    const trimmed = prevLine.trimStart()
+    const match = trimmed.match(/^(\d+)\.\s/)
+    if (match) {
+      lastNumber = parseInt(match[1])
+      break
+    }
+
+    if (trimmed === '') {
+      break
+    }
+
+    if (!prevLine.startsWith(' ') && !prevLine.startsWith('\t')) {
+      break
+    }
+
+    searchPos = prevLineStart - 1
+  }
+
+  return `${lastNumber + 1}. `
+}
+
 function generateTable(rows, cols) {
   let table = '\n'
   
@@ -260,7 +358,7 @@ function handleToolbarAction(action, emoji = null) {
       insertLinePrefix('- ')
       break
     case 'ol':
-      insertLinePrefix('1. ')
+      insertLinePrefix(getOrderedListPrefix())
       break
     case 'hr':
       insertText('\n\n---\n\n')
@@ -284,8 +382,10 @@ function handleToolbarAction(action, emoji = null) {
         insertText(tableText)
       }
       break
-    case 'datetime':
-      insertText(new Date().toLocaleString())
+    case 'datetime-insert':
+      if (emoji) {
+        insertText(emoji)
+      }
       break
     case 'emoji':
       insertText('😀')
@@ -445,12 +545,73 @@ function onPreviewScroll(e) {
   setTimeout(() => { isSyncing = false }, 50)
 }
 
+function onPreviewClick(event) {
+  const copyBtn = event.target.closest('.code-block-copy')
+  if (copyBtn) {
+    const wrapper = copyBtn.closest('.code-block-wrapper')
+    if (!wrapper) return
+    const code = wrapper.querySelector('code')
+    if (!code) return
+    const copiedLabel = t('codeBlock.copied')
+    navigator.clipboard.writeText(code.textContent).then(() => {
+      copyBtn.textContent = copiedLabel
+      setTimeout(() => {
+        copyBtn.textContent = t('codeBlock.copy')
+      }, 2000)
+    }).catch(() => {
+      copyBtn.textContent = 'Failed'
+    })
+    return
+  }
+
+  const link = event.target.closest('a')
+  if (!link) return
+
+  const href = link.getAttribute('href')
+  if (!href) return
+
+  if (href.startsWith('#')) {
+    event.preventDefault()
+    const anchorId = href.substring(1)
+
+    const position = findAnchorPosition(content.value, anchorId)
+    if (position >= 0 && textareaRef.value) {
+      textareaRef.value.focus()
+      textareaRef.value.setSelectionRange(position, position)
+    }
+
+    const target = previewRef.value?.querySelector('#' + CSS.escape(anchorId))
+    if (target) {
+      target.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    }
+    return
+  }
+
+  event.preventDefault()
+
+  if (href.startsWith('http://') || href.startsWith('https://')) {
+    openUrl(href)
+  } else if (href.endsWith('.md') || href.endsWith('.markdown') || href.endsWith('.txt')) {
+    let resolvedPath = href
+    if (!href.startsWith('/') && props.currentFilePath) {
+      const dir = props.currentFilePath.substring(0, props.currentFilePath.lastIndexOf('/') + 1)
+      resolvedPath = dir + href
+    }
+    invoke('open_file_in_new_window', { path: resolvedPath })
+  }
+}
+
 watch(() => props.modelValue, (newValue) => {
   if (content.value !== newValue) {
     content.value = newValue
     // 外部内容变更（如打开文件）时重置历史记录
     history.value = [newValue]
     historyIndex.value = 0
+    // 重置滚动位置，避免左右不同步
+    nextTick(() => {
+      if (textareaRef.value) textareaRef.value.scrollTop = 0
+      if (previewRef.value) previewRef.value.scrollTop = 0
+    })
   }
 })
 
@@ -680,7 +841,7 @@ onUnmounted(() => {
 }
 
 .preview-content {
-  padding: 20px;
+  padding: 32px 32px 32px 56px;
   min-height: 100%;
   background: var(--bg-tertiary);
   color: var(--text-primary);
@@ -688,7 +849,7 @@ onUnmounted(() => {
 
 .markdown-body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-  line-height: 1.6;
+  line-height: 1.8;
   color: var(--text-primary);
 }
 
@@ -751,6 +912,51 @@ onUnmounted(() => {
   border: 0;
 }
 
+.markdown-body :deep(.code-block-wrapper) {
+  margin: 16px 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.markdown-body :deep(.code-block-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.markdown-body :deep(.code-block-lang) {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+.markdown-body :deep(.code-block-copy) {
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.markdown-body :deep(.code-block-copy:hover) {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
+.markdown-body :deep(.code-block-wrapper) pre {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+}
+
 .markdown-body blockquote {
   padding: 0 1em;
   color: var(--text-muted);
@@ -760,7 +966,7 @@ onUnmounted(() => {
 
 .markdown-body ul,
 .markdown-body ol {
-  padding-left: 2em;
+  padding-left: 3em;
   margin-top: 0;
   margin-bottom: 16px;
 }
@@ -770,12 +976,12 @@ onUnmounted(() => {
 }
 
 .markdown-body a {
-  color: #0366d6;
+  color: #42a5f5;
   text-decoration: none;
 }
 
 .dark-theme .markdown-body a {
-  color: #58a6ff;
+  color: #90caf9;
 }
 
 .markdown-body a:hover {

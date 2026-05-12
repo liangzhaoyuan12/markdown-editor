@@ -16,7 +16,13 @@ export default {
     pleaseSaveFirst: '자동 저장을 활성화하려면 먼저 파일을 저장하세요.\n\n"저장" 버튼을 클릭하여 저장 위치를 선택한 후 자동 저장을 사용할 수 있습니다.',
     confirmClose: '현재 파일이 저장되지 않았습니다. 계속하시겠습니까?',
     confirmClear: '모든 내용을 지우시겠습니까?',
-    followSystem: '시스템 설정 따르기'
+    saveChangesTitle: '변경 사항을 저장하시겠습니까?',
+    dontSave: '저장 안 함',
+    cancel: '취소',
+    followSystem: '시스템 설정 따르기',
+    useCurrentTime: '현재 시간을 사용하시겠습니까?',
+    enterCustomTime: '사용자 정의 시간 입력:',
+    currentTime: '현재 시간'
   },
   toolbar: {
     undo: '실행 취소',
@@ -43,7 +49,8 @@ export default {
     emoji: '이모지',
     emojiPickerTitle: '이모지 선택',
     clear: '지우기',
-    search: '검색'
+    search: '검색',
+    recent: '최근 사용'
   },
   editor: {
     tableRows: '행 수를 입력하세요:',
@@ -55,6 +62,10 @@ export default {
     next: '다음',
     close: '닫기',
     noResults: '결과 없음'
+  },
+  codeBlock: {
+    copy: '복사',
+    copied: '복사됨!'
   },
   languages: {
     'zh-CN': '简体中文',

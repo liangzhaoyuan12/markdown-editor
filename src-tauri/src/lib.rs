@@ -1,5 +1,6 @@
-use pulldown_cmark::{html, Parser};
-use tauri::{Emitter, Manager};
+use pulldown_cmark::{html, Options, Parser};
+use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -21,7 +22,7 @@ async fn open_file_dialog(app_handle: tauri::AppHandle) -> Result<Option<String>
     let file_path = app_handle
         .dialog()
         .file()
-        .add_filter("Markdown Files", &["md", "markdown"])
+        .add_filter("Markdown & Text Files", &["md", "markdown", "txt"])
         .blocking_pick_file();
     
     Ok(file_path.and_then(|p| p.as_path().map(|path| path.to_string_lossy().to_string())))
@@ -29,7 +30,7 @@ async fn open_file_dialog(app_handle: tauri::AppHandle) -> Result<Option<String>
 
 #[tauri::command]
 async fn markdown_to_html(markdown: String) -> Result<String, String> {
-    let parser = Parser::new(&markdown);
+    let parser = Parser::new_ext(&markdown, Options::all());
     let mut html_output = String::with_capacity(markdown.len() * 2);
     html::push_html(&mut html_output, parser);
     Ok(html_output)
@@ -40,11 +41,43 @@ async fn save_file_dialog(app_handle: tauri::AppHandle, default_name: Option<Str
     let file_path = app_handle
         .dialog()
         .file()
-        .add_filter("Markdown Files", &["md", "markdown"])
+        .add_filter("Markdown & Text Files", &["md", "markdown", "txt"])
         .set_file_name(default_name.unwrap_or_else(|| "untitled".to_string()))
         .blocking_save_file();
     
     Ok(file_path.and_then(|p| p.as_path().map(|path| path.to_string_lossy().to_string())))
+}
+
+#[tauri::command]
+async fn open_file_in_new_window(path: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| format!("{}", e))?
+        .as_millis();
+    let label = format!("file-{}", timestamp);
+    
+    let title = std::path::Path::new(&path)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.clone());
+    
+    let encoded = path
+        .replace('%', "%25")
+        .replace('#', "%23")
+        .replace('?', "%3F")
+        .replace('&', "%26");
+    let url = format!("index.html?file={}", encoded);
+    
+    WebviewWindowBuilder::new(
+        &app_handle,
+        &label,
+        WebviewUrl::App(url.into())
+    )
+    .title(format!("Markdown Editor - {}", title))
+    .build()
+    .map_err(|e| format!("Failed to create window: {}", e))?;
+    
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -58,7 +91,8 @@ pub fn run() {
             write_file,
             open_file_dialog,
             save_file_dialog,
-            markdown_to_html
+            markdown_to_html,
+            open_file_in_new_window
         ])
         .setup(|app| {
             // 在应用启动时处理命令行参数

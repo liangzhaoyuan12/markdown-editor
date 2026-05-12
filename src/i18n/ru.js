@@ -16,7 +16,13 @@ export default {
     pleaseSaveFirst: 'Сначала сохраните файл, чтобы включить автосохранение.\n\nНажмите кнопку "Сохранить", чтобы выбрать место для сохранения, затем автосохранение будет доступно.',
     confirmClose: 'Текущий файл не сохранён. Продолжить?',
     confirmClear: 'Вы уверены, что хотите очистить все содержимое?',
-    followSystem: 'Как в системе'
+    saveChangesTitle: 'Сохранить изменения?',
+    dontSave: 'Не сохранять',
+    cancel: 'Отмена',
+    followSystem: 'Как в системе',
+    useCurrentTime: 'Использовать текущее время?',
+    enterCustomTime: 'Введите дату и время:',
+    currentTime: 'Текущее время'
   },
   toolbar: {
     undo: 'Отменить',
@@ -43,7 +49,8 @@ export default {
     emoji: 'Эмодзи',
     emojiPickerTitle: 'Выберите эмодзи',
     clear: 'Очистить',
-    search: 'Поиск'
+    search: 'Поиск',
+    recent: 'Недавние'
   },
   editor: {
     tableRows: 'Введите количество строк:',
@@ -55,6 +62,10 @@ export default {
     next: 'След.',
     close: 'Закрыть',
     noResults: 'Нет результатов'
+  },
+  codeBlock: {
+    copy: 'Копировать',
+    copied: 'Скопировано!'
   },
   languages: {
     'zh-CN': '简体中文',

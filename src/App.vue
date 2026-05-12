@@ -1,6 +1,8 @@
 <script setup>import { ref, shallowRef, watch, onMounted, computed } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { message } from '@tauri-apps/plugin-dialog';
 import MarkdownEditor from './components/MarkdownEditor.vue';
 import Toolbar from './components/Toolbar.vue';
 import { t, getSavedLanguage, setLanguage, getCurrentMessages, availableLanguages } from './i18n/index.js';
@@ -21,18 +23,48 @@ onMounted(() => {
  }
  updateTheme();
  
- // 加载自动保存设置
- const savedAutoSave = localStorage.getItem('auto-save-enabled');
- if (savedAutoSave === 'true') {
-   autoSaveEnabled.value = true;
- }
+  // 加载自动保存设置（无路径时强制关闭）
+  const savedAutoSave = localStorage.getItem('auto-save-enabled');
+  if (savedAutoSave === 'true' && currentFilePath.value) {
+    autoSaveEnabled.value = true;
+  }
  
- // 监听从文件管理器打开文件的事件
- listen('open-file', (event) => {
-   const filePath = event.payload;
-   console.log('Opening file:', filePath);
-   openFileFromPath(filePath);
- });
+  // 监听从文件管理器打开文件的事件
+  listen('open-file', (event) => {
+    const filePath = event.payload;
+    console.log('Opening file:', filePath);
+    openFileFromPath(filePath);
+  });
+
+  // 检查 URL 参数（从链接打开的新窗口）
+  const params = new URLSearchParams(window.location.search);
+  const fileParam = params.get('file');
+  if (fileParam) {
+    openFileFromPath(fileParam);
+  }
+
+  // 拦截窗口关闭，未保存时弹窗确认
+  getCurrentWindow().onCloseRequested(async (event) => {
+    if (isModified.value) {
+      const result = await message(t('common.saveChangesTitle'), {
+        title: 'Markdown Editor',
+        kind: 'warning',
+        buttons: 'YesNoCancel'
+      });
+      if (result === 'Yes') {
+        await handleSave();
+        if (isModified.value) {
+          event.preventDefault();
+        } else {
+          getCurrentWindow().destroy();
+        }
+      } else if (result === 'No') {
+        getCurrentWindow().destroy();
+      } else {
+        event.preventDefault();
+      }
+    }
+  });
 });
 watch(themeMode, () => {
  localStorage.setItem('theme-mode', themeMode.value);
@@ -230,9 +262,19 @@ function handleAutoSaveToggle() {
  }
 }
 watch(autoSaveEnabled, (newValue) => {
- if (newValue && currentFilePath.value) {
- performAutoSave();
- }
+  if (newValue && currentFilePath.value) {
+  performAutoSave();
+  }
+});
+
+// 无路径时强制关闭，有路径时恢复用户偏好
+watch(currentFilePath, (val) => {
+  if (!val) {
+    autoSaveEnabled.value = false;
+  } else {
+    const saved = localStorage.getItem('auto-save-enabled');
+    autoSaveEnabled.value = saved === 'true';
+  }
 });
 function handleToolbarAction(action, emoji = null) {
  if (editorRef.value) {
@@ -334,6 +376,7 @@ function handleKeydown(event) {
       <MarkdownEditor 
         ref="editorRef"
         v-model="content" 
+        :currentFilePath="currentFilePath"
         @update:modelValue="onContentChange"
       />
     </main>

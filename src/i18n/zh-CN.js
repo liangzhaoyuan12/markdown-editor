@@ -16,8 +16,14 @@ export default {
     pleaseSaveFirst: '请先保存文件以启用自动保存功能。\n\n点击“保存”按钮选择保存位置后，即可使用自动保存。',
     confirmClose: '当前文件未保存，是否继续？',
     confirmClear: '确定要清空所有内容吗？',
+    saveChangesTitle: '是否保存更改的文本？',
+    dontSave: '不保存',
+    cancel: '取消',
     insert: '插入表格',
-    followSystem: '跟随系统'
+    followSystem: '跟随系统',
+    useCurrentTime: '使用当前时间？',
+    enterCustomTime: '请输入自定义时间:',
+    currentTime: '当前时间'
   },
   toolbar: {
     undo: '撤销',
@@ -44,7 +50,8 @@ export default {
     emoji: '表情',
     emojiPickerTitle: '选择表情',
     clear: '清空',
-    search: '搜索'
+    search: '搜索',
+    recent: '最近使用'
   },
   editor: {
     tableRows: '请输入行数:',
@@ -56,6 +63,10 @@ export default {
     next: '下一个',
     close: '关闭',
     noResults: '无结果'
+  },
+  codeBlock: {
+    copy: '复制',
+    copied: '已复制！'
   },
   languages: {
     'zh-CN': '简体中文',

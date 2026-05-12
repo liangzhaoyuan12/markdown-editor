@@ -16,7 +16,13 @@ export default {
     pleaseSaveFirst: '請先儲存檔案以啟用自動儲存功能。\n\n點擊"儲存"按鈕選擇儲存位置後，即可使用自動儲存。',
     confirmClose: '目前檔案未儲存，是否繼續？',
     confirmClear: '確定要清空所有內容嗎？',
-    followSystem: '跟隨系統'
+    saveChangesTitle: '是否儲存更改的文字？',
+    dontSave: '不儲存',
+    cancel: '取消',
+    followSystem: '跟隨系統',
+    useCurrentTime: '使用當前時間？',
+    enterCustomTime: '請輸入自定義時間:',
+    currentTime: '當前時間'
   },
   toolbar: {
     undo: '撤銷',
@@ -43,7 +49,8 @@ export default {
     emoji: '表情',
     emojiPickerTitle: '選擇表情',
     clear: '清空',
-    search: '搜尋'
+    search: '搜尋',
+    recent: '最近使用'
   },
   editor: {
     tableRows: '請輸入行數:',
@@ -55,6 +62,10 @@ export default {
     next: '下一個',
     close: '關閉',
     noResults: '無結果'
+  },
+  codeBlock: {
+    copy: '複製',
+    copied: '已複製！'
   },
   languages: {
     'zh-CN': '簡體中文',

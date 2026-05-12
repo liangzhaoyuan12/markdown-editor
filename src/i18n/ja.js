@@ -16,7 +16,13 @@ export default {
     pleaseSaveFirst: '自動保存を有効にするには、まずファイルを保存してください。\n\n「保存」ボタンをクリックして保存場所を選択すると、自動保存を使用できます。',
     confirmClose: '現在のファイルは保存されていません。続行しますか？',
     confirmClear: 'すべての内容を消去してもよろしいですか？',
-    followSystem: 'システムに従う'
+    saveChangesTitle: '変更を保存しますか？',
+    dontSave: '保存しない',
+    cancel: 'キャンセル',
+    followSystem: 'システムに従う',
+    useCurrentTime: '現在時刻を使用しますか？',
+    enterCustomTime: 'カスタム日時を入力してください:',
+    currentTime: '現在時刻'
   },
   toolbar: {
     undo: '元に戻す',
@@ -43,7 +49,8 @@ export default {
     emoji: '絵文字',
     emojiPickerTitle: '絵文字を選択',
     clear: '消去',
-    search: '検索'
+    search: '検索',
+    recent: '最近使ったもの'
   },
   editor: {
     tableRows: '行数を入力してください:',
@@ -55,6 +62,10 @@ export default {
     next: '次へ',
     close: '閉じる',
     noResults: '見つかりません'
+  },
+  codeBlock: {
+    copy: 'コピー',
+    copied: 'コピーしました！'
   },
   languages: {
     'zh-CN': '简体中文',

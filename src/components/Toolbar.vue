@@ -74,9 +74,36 @@
     <div class="toolbar-divider"></div>
 
     <div class="toolbar-group toolbar-group-relative">
-      <button @click="handleAction('datetime')" :title="t('toolbar.datetime')" class="toolbar-btn">
+      <button @click="handleAction('datetime')" :title="t('toolbar.datetime')" class="toolbar-btn" :class="{ 'toolbar-btn-active': showDatetimePicker }">
         <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
       </button>
+      
+      <div v-if="showDatetimePicker" class="datetime-picker" @click.stop>
+        <div class="datetime-picker-header">
+          <span class="datetime-picker-title">{{ t('toolbar.datetime') }}</span>
+          <button @click="closeDatetimePicker" class="datetime-picker-close" :title="t('toolbar.close')">
+            <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+        <div class="datetime-picker-content">
+          <button @click="insertCurrentTime" class="datetime-option">
+            <span class="datetime-option-icon">🕐</span>
+            <span>{{ t('common.currentTime') }}</span>
+            <span class="datetime-option-value">{{ currentTimeStr }}</span>
+          </button>
+          <div class="datetime-custom-row">
+            <input 
+              v-model="datetimeCustom"
+              @keydown.enter="insertCustomTime"
+              :placeholder="t('common.enterCustomTime')"
+              class="datetime-custom-input"
+            />
+            <button @click="insertCustomTime" class="datetime-custom-btn" :disabled="!datetimeCustom">
+              {{ t('common.insert') }}
+            </button>
+          </div>
+        </div>
+      </div>
       <button @click="handleAction('emoji')" :title="t('toolbar.emoji')" class="toolbar-btn" :class="{ 'toolbar-btn-active': showEmojiPicker }">
         <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
       </button>
@@ -89,6 +116,20 @@
           </button>
         </div>
         <div class="emoji-picker-content">
+          <div v-if="recentEmojis.length > 0" class="emoji-category">
+            <div class="emoji-category-title">🕐 {{ t('toolbar.recent') || 'Recently Used' }}</div>
+            <div class="emoji-grid">
+              <button 
+                v-for="emoji in recentEmojis" 
+                :key="'r-'+emoji"
+                @click="saveRecentEmoji(emoji); emit('action', 'emoji-insert', emoji); showEmojiPicker = false"
+                class="emoji-item"
+                :title="emoji"
+              >
+                {{ emoji }}
+              </button>
+            </div>
+          </div>
           <div v-for="(emojis, category) in emojiCategories" :key="category" class="emoji-category">
             <div class="emoji-category-title">{{ category }}</div>
             <div class="emoji-grid">
@@ -170,7 +211,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { t } from '../i18n/index.js'
 
 const emit = defineEmits(['action', 'emoji-insert', 'table-insert'])
@@ -181,6 +222,25 @@ const tableCols = ref(3)
 const toolbarRef = ref(null)
 const emojiCategories = ref({})
 let emojiLoaded = false
+const recentEmojis = ref(loadRecentEmojis())
+const showDatetimePicker = ref(false)
+const datetimeCustom = ref('')
+const currentTimeStr = computed(() => new Date().toLocaleString())
+
+function loadRecentEmojis() {
+  try {
+    return JSON.parse(localStorage.getItem('recent-emojis') || '[]')
+  } catch {
+    return []
+  }
+}
+
+function saveRecentEmoji(emoji) {
+  const list = recentEmojis.value.filter(e => e !== emoji)
+  list.unshift(emoji)
+  recentEmojis.value = list.slice(0, 10)
+  localStorage.setItem('recent-emojis', JSON.stringify(recentEmojis.value))
+}
 
 async function loadEmojiData() {
   if (emojiLoaded) return
@@ -193,13 +253,20 @@ function handleAction(action, emoji = null) {
   if (action === 'emoji' && !emoji) {
     showEmojiPicker.value = !showEmojiPicker.value
     showTableDialog.value = false
+    showDatetimePicker.value = false
     if (showEmojiPicker.value) {
       loadEmojiData()
     }
   } else if (action === 'table') {
     showTableDialog.value = !showTableDialog.value
     showEmojiPicker.value = false
+    showDatetimePicker.value = false
+  } else if (action === 'datetime') {
+    showDatetimePicker.value = !showDatetimePicker.value
+    showEmojiPicker.value = false
+    showTableDialog.value = false
   } else if (emoji) {
+    saveRecentEmoji(emoji)
     emit('action', 'emoji-insert', emoji)
     showEmojiPicker.value = false
   } else {
@@ -222,6 +289,22 @@ function closeEmojiPicker() {
   showEmojiPicker.value = false
 }
 
+function closeDatetimePicker() {
+  showDatetimePicker.value = false
+}
+
+function insertCurrentTime() {
+  emit('action', 'datetime-insert', new Date().toLocaleString())
+  showDatetimePicker.value = false
+}
+
+function insertCustomTime() {
+  if (!datetimeCustom.value.trim()) return
+  emit('action', 'datetime-insert', datetimeCustom.value.trim())
+  datetimeCustom.value = ''
+  showDatetimePicker.value = false
+}
+
 function handleClickOutside(event) {
   if (toolbarRef.value && !toolbarRef.value.contains(event.target)) {
     if (showEmojiPicker.value) {
@@ -229,6 +312,9 @@ function handleClickOutside(event) {
     }
     if (showTableDialog.value) {
       showTableDialog.value = false
+    }
+    if (showDatetimePicker.value) {
+      showDatetimePicker.value = false
     }
   }
 }
@@ -413,6 +499,133 @@ onUnmounted(() => {
 
 .emoji-item:active {
   background: var(--active-bg);
+}
+
+.datetime-picker {
+  position: fixed;
+  top: 56px;
+  right: 80px;
+  width: 280px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+
+.datetime-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.datetime-picker-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.datetime-picker-close {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background-color 0.15s;
+}
+
+.datetime-picker-close:hover {
+  background: var(--hover-bg);
+}
+
+.datetime-picker-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.datetime-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: background-color 0.15s;
+}
+
+.datetime-option:hover {
+  background: var(--hover-bg);
+}
+
+.datetime-option-icon {
+  font-size: 16px;
+}
+
+.datetime-option-value {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.datetime-custom-row {
+  display: flex;
+  gap: 6px;
+}
+
+.datetime-custom-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+}
+
+.datetime-custom-input:focus {
+  border-color: var(--accent-color);
+}
+
+.datetime-custom-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: background-color 0.15s;
+}
+
+.datetime-custom-btn:hover {
+  background: var(--hover-bg);
+}
+
+.datetime-custom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* 表格创建弹窗样式 */

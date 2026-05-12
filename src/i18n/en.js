@@ -16,8 +16,14 @@ export default {
     pleaseSaveFirst: 'Please save the file first to enable auto-save.\n\nClick the "Save" button to choose a save location, then auto-save will be available.',
     confirmClose: 'The current file is not saved. Continue anyway?',
     confirmClear: 'Are you sure you want to clear all content?',
+    saveChangesTitle: 'Do you want to save changes?',
+    dontSave: "Don't Save",
+    cancel: 'Cancel',
     insert: 'Insert Table',
-    followSystem: 'Follow System'
+    followSystem: 'Follow System',
+    useCurrentTime: 'Use current time?',
+    enterCustomTime: 'Enter custom datetime:',
+    currentTime: 'Current time'
   },
   toolbar: {
     undo: 'Undo',
@@ -44,7 +50,8 @@ export default {
     emoji: 'Emoji',
     emojiPickerTitle: 'Choose Emoji',
     clear: 'Clear',
-    search: 'Search'
+    search: 'Search',
+    recent: 'Recently Used'
   },
   editor: {
     tableRows: 'Enter number of rows:',
@@ -56,6 +63,10 @@ export default {
     next: 'Next',
     close: 'Close',
     noResults: 'No results'
+  },
+  codeBlock: {
+    copy: 'Copy',
+    copied: 'Copied!'
   },
   languages: {
     'zh-CN': '简体中文',
