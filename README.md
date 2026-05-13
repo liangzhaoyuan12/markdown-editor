@@ -1,74 +1,92 @@
+**English** | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Русский](README.ru.md)
+
 # Markdown Editor
 
-一款跨平台的本地Markdown编辑器，支持 macOS、Windows 和 Linux。
+A cross-platform local Markdown editor supporting macOS, Windows, and Linux.
 
-## 功能特性
+## Features
 
-- 📝 基于 editor.md 的强大Markdown编辑体验
-- 👁️ 实时预览和同步滚动
-- 💾 完整的文件管理（新建、打开、保存、另存为）
-- ⌨️ 快捷键支持（Ctrl+N 新建、Ctrl+O 打开、Ctrl+S 保存）
-- 🎨 简洁现代的UI界面
-- 🌍 跨平台支持（macOS、Windows、Linux）
+- 📝 WYSIWYG Markdown editing with live preview and synchronized scrolling
+- 🔍 Built-in search with highlighting and quick navigation
+- ↩️ Undo/Redo (Ctrl+Z / Ctrl+Y)
+- ⌨️ Rich keyboard shortcuts
+  - `Ctrl+N` New, `Ctrl+O` Open, `Ctrl+S` Save, `Ctrl+F` Search
+  - `Ctrl+Enter` Insert a new line below
+  - Toolbar supports bold, italic, strikethrough, blockquote, headings, lists, links, images, code blocks, tables, emoji, and more
+- 💾 Full file management (New, Open, Save, Save As) with auto-save support
+- 🎨 Light/Dark theme toggle with system theme follow
+- 🌍 Multi-language support: English, 简体中文, 繁體中文, 日本語, 한국어, Русский
+- 🖥️ Cross-platform (macOS, Windows, Linux)
 
-## 技术栈
+## Tech Stack
 
-- **前端框架**: Vue 3 + Vite
-- **桌面应用**: Tauri 2.x
-- **Markdown编辑器**: editor.md
-- **后端语言**: Rust
+- **Frontend**: Vue 3 + Vite
+- **Desktop**: Tauri 2.x
+- **Markdown Rendering**: Rust (pulldown-cmark) via Tauri IPC
+- **Backend**: Rust
 
-## 开发环境要求
+## Prerequisites
 
 - Node.js 16+
 - Rust 1.70+
-- 系统依赖（参考 [Tauri 文档](https://tauri.app/start/prerequisites/)）
+- System dependencies (see [Tauri docs](https://tauri.app/start/prerequisites/))
 
-## 安装依赖
+## Install Dependencies
 
 ```bash
 npm install
 ```
 
-## 开发模式
+## Development
 
 ```bash
 npm run tauri dev
 ```
 
-## 构建应用
+## Build
 
 ```bash
 npm run tauri build
 ```
 
-构建完成后，可执行文件将位于 `src-tauri/target/release/bundle/` 目录下。
+After building, the executable will be located in `src-tauri/target/release/bundle/`.
 
-## 项目结构
+## Project Structure
 
 ```
 markdown-editor/
-├── src/                    # Vue 前端代码
-│   ├── components/         # Vue 组件
-│   │   └── MarkdownEditor.vue  # Markdown编辑器组件
-│   ├── App.vue            # 主应用组件
-│   └── main.js            # 入口文件
-├── src-tauri/             # Tauri Rust 后端
+├── src/                    # Vue frontend
+│   ├── components/         # Vue components
+│   │   ├── MarkdownEditor.vue  # Markdown editor component
+│   │   ├── Toolbar.vue     # Toolbar component
+│   │   └── emojiData.js    # Emoji data
+│   ├── i18n/               # i18n translation files
+│   │   ├── index.js
+│   │   ├── en.js           # English
+│   │   ├── zh-CN.js        # 简体中文
+│   │   ├── zh-TW.js        # 繁體中文
+│   │   ├── ja.js           # 日本語
+│   │   ├── ko.js           # 한국어
+│   │   └── ru.js           # Русский
+│   ├── App.vue             # Main app component
+│   └── main.js             # Entry point
+├── src-tauri/              # Tauri Rust backend
 │   ├── src/
-│   │   └── lib.rs         # Rust 后端逻辑
-│   ├── capabilities/      # 权限配置
-│   └── tauri.conf.json    # Tauri 配置
-└── index.html             # HTML 模板
+│   │   ├── lib.rs          # Rust backend logic (file I/O, Markdown rendering)
+│   │   └── main.rs
+│   ├── capabilities/       # Permission config
+│   └── tauri.conf.json     # Tauri configuration
+└── index.html              # HTML template
 ```
 
-## 使用说明
+## Usage
 
-1. **新建文件**: 点击工具栏"新建"按钮或按 Ctrl+N
-2. **打开文件**: 点击"打开"按钮或按 Ctrl+O，选择本地的 .md 文件
-3. **编辑内容**: 在左侧编辑区编写Markdown内容，右侧实时预览
-4. **保存文件**: 点击"保存"按钮或按 Ctrl+S
-5. **另存为**: 点击"另存为"按钮保存到新位置
+1. **New File**: Click "New" button or press Ctrl+N
+2. **Open File**: Click "Open" button or press Ctrl+O, select a local .md file
+3. **Edit**: Write Markdown in the left pane, preview updates in real-time on the right
+4. **Save**: Click "Save" button or press Ctrl+S
+5. **Save As**: Click "Save As" button to save to a new location
 
-## 许可证
+## License
 
 MIT

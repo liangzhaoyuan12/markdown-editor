@@ -81,7 +81,7 @@ const maxHistorySize = 50
 
 const previewHtml = ref('')
 let renderTimer = null
-const RENDER_DEBOUNCE_MS = 120
+const RENDER_DEBOUNCE_MS = 300
 
 async function renderMarkdown() {
   const md = content.value
@@ -166,24 +166,55 @@ watch(content, () => {
   }
 })
 
+let emitTimer = null
+
 function onInput() {
-  emit('update:modelValue', content.value)
-  
-  // 添加到历史记录
-  addToHistory(content.value)
+  if (!emitTimer) {
+    emitTimer = setTimeout(() => {
+      emit('update:modelValue', content.value)
+      emitTimer = null
+    }, 0)
+  }
+  scheduleHistory(content.value)
+}
+
+function flushEmit() {
+  if (emitTimer) {
+    clearTimeout(emitTimer)
+    emitTimer = null
+    emit('update:modelValue', content.value)
+  }
+}
+
+let historyTimer = null
+let pendingHistoryContent = null
+
+function scheduleHistory(newContent) {
+  pendingHistoryContent = newContent
+  if (!historyTimer) {
+    historyTimer = setTimeout(flushHistory, 500)
+  }
+}
+
+function flushHistory() {
+  if (historyTimer) {
+    clearTimeout(historyTimer)
+    historyTimer = null
+  }
+  if (pendingHistoryContent != null) {
+    addToHistory(pendingHistoryContent)
+    pendingHistoryContent = null
+  }
 }
 
 function addToHistory(newContent) {
-  // 如果当前不在历史记录的末尾，删除后面的记录
   if (historyIndex.value < history.value.length - 1) {
     history.value = history.value.slice(0, historyIndex.value + 1)
   }
   
-  // 添加新内容
   history.value.push(newContent)
   historyIndex.value = history.value.length - 1
   
-  // 限制历史记录大小
   if (history.value.length > maxHistorySize) {
     history.value.shift()
     historyIndex.value--
@@ -191,6 +222,7 @@ function addToHistory(newContent) {
 }
 
 function undo() {
+  flushHistory()
   if (historyIndex.value > 0) {
     historyIndex.value--
     content.value = history.value[historyIndex.value]
@@ -217,7 +249,9 @@ function insertText(before, after = '') {
   const newText = before + selectedText + after
   content.value = content.value.substring(0, start) + newText + content.value.substring(end)
   
+  flushHistory()
   emit('update:modelValue', content.value)
+  addToHistory(content.value)
   
   setTimeout(() => {
     textarea.focus()
@@ -238,7 +272,9 @@ function insertLinePrefix(prefix) {
   const lineStart = text.lastIndexOf('\n', start - 1) + 1
   
   content.value = text.substring(0, lineStart) + prefix + text.substring(lineStart)
+  flushHistory()
   emit('update:modelValue', content.value)
+  addToHistory(content.value)
   
   setTimeout(() => {
     textarea.focus()
@@ -397,8 +433,10 @@ function handleToolbarAction(action, emoji = null) {
       break
     case 'clear':
       if (confirm(t('common.confirmClear'))) {
+        flushHistory()
         content.value = ''
         emit('update:modelValue', '')
+        addToHistory(content.value)
       }
       break
     case 'search':
@@ -509,6 +547,7 @@ function handleSearchKeydown(event) {
 defineExpose({
   handleToolbarAction,
   toggleSearch,
+  flushEmit,
   getMarkdown: () => content.value,
   setMarkdown: (text) => { content.value = text }
 })
@@ -630,6 +669,23 @@ function handleKeydown(event) {
     event.preventDefault()
     redo()
   }
+  // Ctrl/Cmd + Enter: 在下方新建一行，光标移动到新行
+  else if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault()
+    const textarea = textareaRef.value
+    const text = content.value
+    const pos = textarea.selectionEnd
+    const lineEnd = text.indexOf('\n', pos)
+    const insertPos = lineEnd === -1 ? text.length : lineEnd
+    content.value = text.substring(0, insertPos) + '\n' + text.substring(insertPos)
+    flushHistory()
+    emit('update:modelValue', content.value)
+    addToHistory(content.value)
+    setTimeout(() => {
+      textarea.focus()
+      textarea.setSelectionRange(insertPos + 1, insertPos + 1)
+    }, 0)
+  }
 }
 
 onMounted(() => {
@@ -642,6 +698,8 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('keydown', handleKeydown)
   if (renderTimer) clearTimeout(renderTimer)
+  if (historyTimer) clearTimeout(historyTimer)
+  if (emitTimer) clearTimeout(emitTimer)
 })
 </script>
 
@@ -975,16 +1033,20 @@ onUnmounted(() => {
   margin-top: 0.25em;
 }
 
-.markdown-body a {
-  color: #42a5f5;
+.markdown-body :deep(a),
+.markdown-body :deep(a:link),
+.markdown-body :deep(a:visited) {
+  color: #81d4fa;
   text-decoration: none;
 }
 
-.dark-theme .markdown-body a {
-  color: #90caf9;
+.dark-theme .markdown-body :deep(a),
+.dark-theme .markdown-body :deep(a:link),
+.dark-theme .markdown-body :deep(a:visited) {
+  color: #b3e5fc;
 }
 
-.markdown-body a:hover {
+.markdown-body :deep(a:hover) {
   text-decoration: underline;
 }
 
@@ -993,28 +1055,29 @@ onUnmounted(() => {
   box-sizing: content-box;
 }
 
-.markdown-body table {
+.markdown-body :deep(table) {
   display: block;
   width: 100%;
   overflow: auto;
   border-spacing: 0;
   border-collapse: collapse;
+  border: 1px solid var(--border-color);
   margin-top: 0;
   margin-bottom: 16px;
 }
 
-.markdown-body table th,
-.markdown-body table td {
+.markdown-body :deep(table th),
+.markdown-body :deep(table td) {
   padding: 6px 13px;
   border: 1px solid var(--border-color);
 }
 
-.markdown-body table tr {
+.markdown-body :deep(table tr) {
   background-color: var(--bg-primary);
   border-top: 1px solid var(--border-color);
 }
 
-.markdown-body table tr:nth-child(2n) {
+.markdown-body :deep(table tr:nth-child(2n)) {
   background-color: var(--bg-secondary);
 }
 

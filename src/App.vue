@@ -171,17 +171,18 @@ async function openFileFromPath(filePath) {
  }
 }
 async function handleSave() {
- try {
- let filePath = currentFilePath.value;
- if (!filePath) {
- filePath = await invoke('save_file_dialog', { defaultName: 'document.md' });
- if (!filePath)
- return;
- }
- await invoke('write_file', {
- path: filePath,
- content: content.value
- });
+  try {
+    editorRef.value?.flushEmit()
+    let filePath = currentFilePath.value;
+    if (!filePath) {
+      filePath = await invoke('save_file_dialog', { defaultName: 'document.md' });
+      if (!filePath)
+        return;
+    }
+    await invoke('write_file', {
+      path: filePath,
+      content: content.value
+    });
  currentFilePath.value = filePath;
  isModified.value = false;
  showNotification(t('common.fileSaved'));
@@ -194,8 +195,9 @@ async function handleSave() {
  }
 }
 async function handleSaveAs() {
- try {
- const filePath = await invoke('save_file_dialog', {
+  try {
+    editorRef.value?.flushEmit()
+    const filePath = await invoke('save_file_dialog', {
  defaultName: getFileName() || 'document.md'
  });
  if (filePath) {
@@ -226,22 +228,22 @@ function showNotification(message) {
  setTimeout(() => notif.remove(), 2000);
 }
 function onContentChange(newContent) {
- content.value = newContent;
- isModified.value = true;
- if (autoSaveEnabled.value && currentFilePath.value) {
- if (autoSaveTimer) {
- clearTimeout(autoSaveTimer);
- }
- autoSaveTimer = setTimeout(() => {
- performAutoSave();
- }, 500);
- }
+  isModified.value = true
+  if (autoSaveEnabled.value && currentFilePath.value) {
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer)
+    }
+    autoSaveTimer = setTimeout(() => {
+      performAutoSave()
+    }, 500)
+  }
 }
 async function performAutoSave() {
- if (!currentFilePath.value)
- return;
- try {
- await invoke('write_file', {
+  if (!currentFilePath.value)
+    return;
+  try {
+    editorRef.value?.flushEmit()
+    await invoke('write_file', {
  path: currentFilePath.value,
  content: content.value
  });
