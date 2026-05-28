@@ -9,6 +9,7 @@
     "dialog:default",
     "core:window:allow-close",
     "core:window:allow-destroy",
+    "core:window:allow-set-title",
     "fs:allow-read-text-file",
     "fs:allow-write-text-file",
     {

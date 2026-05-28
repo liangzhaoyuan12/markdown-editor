@@ -278,6 +278,14 @@ watch(currentFilePath, (val) => {
     autoSaveEnabled.value = saved === 'true';
   }
 });
+
+// 更新窗口标题
+watch(currentFilePath, (newPath) => {
+  const fileName = newPath ? getFileName() : null;
+  const title = fileName ? `Markdown Editor - ${fileName}` : 'Markdown Editor';
+  document.title = title;
+  getCurrentWindow().setTitle(title);
+});
 function handleToolbarAction(action, emoji = null) {
  if (editorRef.value) {
  editorRef.value.handleToolbarAction(action, emoji);
