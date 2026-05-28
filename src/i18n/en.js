@@ -51,7 +51,8 @@ export default {
     emojiPickerTitle: 'Choose Emoji',
     clear: 'Clear',
     search: 'Search',
-    recent: 'Recently Used'
+    recent: 'Recently Used',
+    print: 'Print'
   },
   editor: {
     tableRows: 'Enter number of rows:',

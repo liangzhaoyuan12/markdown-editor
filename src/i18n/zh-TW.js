@@ -50,7 +50,8 @@ export default {
     emojiPickerTitle: '選擇表情',
     clear: '清空',
     search: '搜尋',
-    recent: '最近使用'
+    recent: '最近使用',
+    print: '列印'
   },
   editor: {
     tableRows: '請輸入行數:',

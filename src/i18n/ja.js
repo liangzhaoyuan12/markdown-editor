@@ -50,7 +50,8 @@ export default {
     emojiPickerTitle: '絵文字を選択',
     clear: '消去',
     search: '検索',
-    recent: '最近使ったもの'
+    recent: '最近使ったもの',
+    print: '印刷'
   },
   editor: {
     tableRows: '行数を入力してください:',

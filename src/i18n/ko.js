@@ -50,7 +50,8 @@ export default {
     emojiPickerTitle: '이모지 선택',
     clear: '지우기',
     search: '검색',
-    recent: '최근 사용'
+    recent: '최근 사용',
+    print: '인쇄'
   },
   editor: {
     tableRows: '행 수를 입력하세요:',

@@ -14,6 +14,7 @@ A cross-platform local Markdown editor supporting macOS, Windows, and Linux.
   - `Ctrl+Enter` Insert a new line below
   - Toolbar supports bold, italic, strikethrough, blockquote, headings, lists, links, images, code blocks, tables, emoji, and more
 - 💾 Full file management (New, Open, Save, Save As) with auto-save support
+- 🖨️ System print dialog — print Markdown documents directly or save as PDF
 - 🎨 Light/Dark theme toggle with system theme follow
 - 🌍 Multi-language support: English, 简体中文, 繁體中文, 日本語, 한국어, Русский
 - 🖥️ Cross-platform (macOS, Windows, Linux)
@@ -86,6 +87,7 @@ markdown-editor/
 3. **Edit**: Write Markdown in the left pane, preview updates in real-time on the right
 4. **Save**: Click "Save" button or press Ctrl+S
 5. **Save As**: Click "Save As" button to save to a new location
+6. **Print**: Click the Print button on the toolbar to open the system print dialog; select a printer to print, or choose "Save as PDF" to export as PDF
 
 ## License
 

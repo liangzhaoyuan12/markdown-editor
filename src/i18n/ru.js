@@ -50,7 +50,8 @@ export default {
     emojiPickerTitle: 'Выберите эмодзи',
     clear: 'Очистить',
     search: 'Поиск',
-    recent: 'Недавние'
+    recent: 'Недавние',
+    print: 'Печать'
   },
   editor: {
     tableRows: 'Введите количество строк:',

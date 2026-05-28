@@ -287,9 +287,94 @@ watch(currentFilePath, (newPath) => {
   getCurrentWindow().setTitle(title);
 });
 function handleToolbarAction(action, emoji = null) {
- if (editorRef.value) {
- editorRef.value.handleToolbarAction(action, emoji);
- }
+  if (action === 'print') {
+  handlePrint();
+  return;
+  }
+  if (editorRef.value) {
+  editorRef.value.handleToolbarAction(action, emoji);
+  }
+}
+
+async function handlePrint() {
+  try {
+    const html = await invoke('markdown_to_html', { markdown: content.value });
+    const fileName = getFileName() || 'document';
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '-9999px';
+    iframe.style.top = '0';
+    iframe.style.width = '800px';
+    iframe.style.height = '600px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const styledHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${fileName}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      line-height: 1.8;
+      color: #333;
+      padding: 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1, h2, h3, h4, h5, h6 { margin-top: 24px; margin-bottom: 16px; font-weight: 600; line-height: 1.25; }
+    h1 { font-size: 2em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+    h2 { font-size: 1.5em; border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+    h3 { font-size: 1.25em; }
+    p { margin-bottom: 16px; }
+    code {
+      padding: 0.2em 0.4em; font-size: 85%; background-color: rgba(128,128,128,0.15);
+      border-radius: 3px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    }
+    pre {
+      padding: 16px; overflow: auto; font-size: 85%; line-height: 1.45;
+      background-color: #f6f8fa; border-radius: 3px; margin-bottom: 16px;
+    }
+    pre code { padding: 0; font-size: 100%; background: transparent; border: 0; }
+    blockquote {
+      padding: 0 1em; color: #666; border-left: 0.25em solid #ddd; margin-bottom: 16px;
+    }
+    ul, ol { padding-left: 3em; margin-bottom: 16px; }
+    li { margin-top: 0.25em; }
+    a, a:link, a:visited { color: #0366d6; text-decoration: none; }
+    img { max-width: 100%; }
+    table { width: 100%; border-spacing: 0; border-collapse: collapse; margin-bottom: 16px; }
+    table th, table td { padding: 6px 13px; border: 1px solid #ddd; }
+    table tr { background-color: #fff; border-top: 1px solid #ddd; }
+    table tr:nth-child(2n) { background-color: #f6f8fa; }
+    hr { height: 0.25em; padding: 0; margin: 24px 0; background-color: #ddd; border: 0; }
+    @media print { body { padding: 0; } @page { margin: 2cm; } }
+  </style>
+</head>
+<body>
+  ${html}
+</body>
+</html>`;
+
+    const iframeWin = iframe.contentWindow;
+    const iframeDoc = iframe.contentDocument || iframeWin.document;
+    iframeDoc.open();
+    iframeDoc.write(styledHtml);
+    iframeDoc.close();
+
+    const removeIframe = () => {
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+    };
+    iframeWin.onafterprint = removeIframe;
+    setTimeout(removeIframe, 30000);
+    iframeWin.focus();
+    iframeWin.print();
+  } catch (error) {
+    alert('打印失败: ' + error);
+  }
 }
 
 function handleTableInsert(rows, cols) {

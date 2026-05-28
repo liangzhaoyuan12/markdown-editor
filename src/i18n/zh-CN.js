@@ -51,7 +51,8 @@ export default {
     emojiPickerTitle: '选择表情',
     clear: '清空',
     search: '搜索',
-    recent: '最近使用'
+    recent: '最近使用',
+    print: '打印'
   },
   editor: {
     tableRows: '请输入行数:',
