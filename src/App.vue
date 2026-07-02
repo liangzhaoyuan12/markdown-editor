@@ -125,7 +125,8 @@ const currentLangText = computed(() => {
  return messages.languages[currentLanguage.value] || currentLanguage.value;
 });
 async function handleNew() {
- if (isModified.value) {
+  editorRef.value?.flushEmit()
+  if (isModified.value) {
  const confirm = window.confirm(t('common.confirmClose'));
  if (!confirm)
  return;
@@ -137,8 +138,9 @@ async function handleNew() {
  autoSaveEnabled.value = false;
 }
 async function handleOpen() {
- try {
- if (isModified.value) {
+  try {
+  editorRef.value?.flushEmit()
+  if (isModified.value) {
  const confirm = window.confirm(t('common.confirmClose'));
  if (!confirm)
  return;
@@ -154,8 +156,9 @@ async function handleOpen() {
 }
 
 async function openFileFromPath(filePath) {
- try {
- if (isModified.value) {
+  try {
+  editorRef.value?.flushEmit()
+  if (isModified.value) {
  const confirm = window.confirm(t('common.confirmClose'));
  if (!confirm)
  return;
