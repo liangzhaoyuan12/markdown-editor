@@ -127,51 +127,82 @@ const currentLangText = computed(() => {
 async function handleNew() {
   editorRef.value?.flushEmit()
   if (isModified.value) {
- const confirm = window.confirm(t('common.confirmClose'));
- if (!confirm)
- return;
- }
- content.value = '# New Document\n\n';
- currentFilePath.value = null;
- isModified.value = false;
- // 新建文档时关闭自动保存，因为没有文件路径
- autoSaveEnabled.value = false;
+    const result = await message(t('common.saveChangesTitle'), {
+      title: 'Markdown Editor',
+      kind: 'warning',
+      buttons: 'YesNoCancel'
+    });
+    if (result === 'Cancel') {
+      return;
+    }
+    if (result === 'Yes') {
+      await handleSave();
+      if (isModified.value) {
+        return;
+      }
+    }
+  }
+  content.value = '# New Document\n\n';
+  currentFilePath.value = null;
+  isModified.value = false;
+  autoSaveEnabled.value = false;
 }
 async function handleOpen() {
   try {
-  editorRef.value?.flushEmit()
-  if (isModified.value) {
- const confirm = window.confirm(t('common.confirmClose'));
- if (!confirm)
- return;
- }
- const filePath = await invoke('open_file_dialog');
- if (filePath) {
- await openFileFromPath(filePath);
- }
- }
- catch (error) {
- alert('打开文件失败: ' + error);
- }
+    editorRef.value?.flushEmit()
+    if (isModified.value) {
+      const result = await message(t('common.saveChangesTitle'), {
+        title: 'Markdown Editor',
+        kind: 'warning',
+        buttons: 'YesNoCancel'
+      });
+      if (result === 'Cancel') {
+        return;
+      }
+      if (result === 'Yes') {
+        await handleSave();
+        if (isModified.value) {
+          return;
+        }
+      }
+    }
+    const filePath = await invoke('open_file_dialog');
+    if (filePath) {
+      await openFileFromPath(filePath);
+    }
+  }
+  catch (error) {
+    alert('打开文件失败: ' + error);
+  }
 }
 
 async function openFileFromPath(filePath) {
   try {
-  editorRef.value?.flushEmit()
-  if (isModified.value) {
- const confirm = window.confirm(t('common.confirmClose'));
- if (!confirm)
- return;
- }
- const fileContent = await invoke('read_file', { path: filePath });
- content.value = fileContent;
- currentFilePath.value = filePath;
- isModified.value = false;
- // 不再重置自动保存状态，保持用户的偏好设置
- }
- catch (error) {
- alert('打开文件失败: ' + error);
- }
+    editorRef.value?.flushEmit()
+    if (isModified.value) {
+      const result = await message(t('common.saveChangesTitle'), {
+        title: 'Markdown Editor',
+        kind: 'warning',
+        buttons: 'YesNoCancel'
+      });
+      if (result === 'Cancel') {
+        return;
+      }
+      if (result === 'Yes') {
+        await handleSave();
+        if (isModified.value) {
+          return;
+        }
+      }
+    }
+    const fileContent = await invoke('read_file', { path: filePath });
+    content.value = fileContent;
+    currentFilePath.value = filePath;
+    isModified.value = false;
+  }
+  catch (error) {
+    alert('打开文件失败: ' + error);
+  }
 }
 async function handleSave() {
   try {

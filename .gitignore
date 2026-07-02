@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 target
+build
+.lingma
+.marscode
 
 # Editor directories and files
 .vscode/*
